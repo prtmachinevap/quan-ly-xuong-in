@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v17.7)</title>
+    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v17.9)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -39,7 +39,7 @@
         .stat-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; user-select: none; }
         .stat-item.active-filter { background-color: #e2e8f0; border-color: #2563eb; }
         .stat-val { font-size: 15px; font-weight: 700; }
-        .stat-lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+        .stat-lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
         .text-running { color: var(--status-running); }
         .text-setup { color: #b45309; } 
@@ -160,7 +160,7 @@
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG QUẢN LÝ TRẠNG THÁI MÁY IN</h1>
+            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v17.9)</h1>
             <div class="auth-zone">
                 <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo Năng Suất & OEE</button>
                 <span class="user-status" id="netStatus" style="background: #e2e8f0; color: #475569;">⚡ Đang kết nối...</span>
@@ -170,19 +170,20 @@
         </div>
     </header>
 
+    <!-- ĐÃ ĐỔI ICON CƠ KHÍ THEO YÊU CẦU -->
     <div class="stats-bar">
-        <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">🏭Tổng máy:</div><div class="stat-val" id="total-machines">0</div></div>
-        <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">▶️ Đang chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
-        <div class="stat-item" onclick="setFilter('setup', this)"><div class="stat-lbl">🔄 Đang thay đơn:</div><div class="stat-val text-setup" id="count-setup">0</div></div>
-        <div class="stat-item" onclick="setFilter('size', this)"><div class="stat-lbl">🔀 Đang thay size:</div><div class="stat-val text-size" id="count-size">0</div></div>
+        <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">⚙️ Tổng máy:</div><div class="stat-val" id="total-machines">0</div></div>
+        <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">⚡ Chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
+        <div class="stat-item" onclick="setFilter('setup', this)"><div class="stat-lbl">🔧 Thay đơn:</div><div class="stat-val text-setup" id="count-setup">0</div></div>
+        <div class="stat-item" onclick="setFilter('size', this)"><div class="stat-lbl">📏 Thay size:</div><div class="stat-val text-size" id="count-size">0</div></div>
         <div class="stat-item" onclick="setFilter('down', this)"><div class="stat-lbl">🚨 Máy dừng:</div><div class="stat-val text-down" id="count-down">0</div></div>
     </div>
 
-    <div class="section-title">KHU MÁY TRÒN CAROUSEL</div>
-    <div class="zone-carousel"><div class="machine-grid" id="carousel-container"></div></div>
+    <div class="section-title" id="title-carousel">KHU MÁY TRÒN CAROUSEL</div>
+    <div class="zone-carousel" id="zone-carousel"><div class="machine-grid" id="carousel-container"></div></div>
 
-    <div class="section-title">KHU MÁY DÀI OVAL</div>
-    <div class="zone-oval"><div class="machine-grid" id="oval-container"></div></div>
+    <div class="section-title" id="title-oval">KHU MÁY DÀI OVAL</div>
+    <div class="zone-oval" id="zone-oval"><div class="machine-grid" id="oval-container"></div></div>
 
     <div class="modal-overlay" id="loginOverlay">
         <div class="modal-box" id="loginModalBox">
@@ -228,9 +229,9 @@
                     <thead>
                         <tr>
                             <th>Mã Máy</th>
-                            <th>▶️ Đang chạy hàng</th>
-                            <th>🔄 Đang thay đơn</th>
-                            <th>🔀 Đang thay size</th>
+                            <th>⚡ Đang chạy hàng</th>
+                            <th>🔧 Đang thay đơn</th>
+                            <th>📏 Đang thay size</th>
                             <th>🚨 Máy dừng</th>
                             <th>🎯 Hiệu Suất OEE</th>
                         </tr>
@@ -260,9 +261,9 @@
             <div class="form-group"><label>TRẠNG THÁI MÁY</label>
                 <select id="inputStatus" onchange="toggleDowntimeReasonField()">
                     <option value="nodata">⚪ Chưa cập nhật dữ liệu</option>
-                    <option value="running">▶️ Đang chạy hàng</option>
-                    <option value="setup">🔄 Đang thay đơn</option>
-                    <option value="size">🔀 Đang thay size</option>
+                    <option value="running">⚡ Đang chạy hàng</option>
+                    <option value="setup">🔧 Đang thay đơn</option>
+                    <option value="size">📏 Đang thay size</option>
                     <option value="down">🚨 Máy dừng</option>
                 </select>
             </div>
@@ -287,10 +288,10 @@
                     <span style="color: #ef4444; display:block; cursor: pointer; text-decoration: underline;" id="btnResetHistory">Reset giờ</span>
                 </div>
                 <div class="history-grid">
-                    <div class="history-item"><span>🟢 Chạy hàng:</span><b id="hist-running">0 Giờ 0P</b></div>
-                    <div class="history-item"><span>🟡 Thay đơn:</span><b id="hist-setup">0 Giờ 0P</b></div>
-                    <div class="history-item"><span>🟠 Thay size:</span><b id="hist-size">0 Giờ 0P</b></div>
-                    <div class="history-item" style="grid-column: span 2;"><span>🔴 Máy dừng:</span><b id="hist-down">0 Giờ 0P</b></div>
+                    <div class="history-item"><span>⚡ Chạy hàng:</span><b id="hist-running">0 Giờ 0P</b></div>
+                    <div class="history-item"><span>🔧 Thay đơn:</span><b id="hist-setup">0 Giờ 0P</b></div>
+                    <div class="history-item"><span>📏 Thay size:</span><b id="hist-size">0 Giờ 0P</b></div>
+                    <div class="history-item" style="grid-column: span 2;"><span>🚨 Máy dừng:</span><b id="hist-down">0 Giờ 0P</b></div>
                 </div>
             </div>
             
@@ -406,6 +407,7 @@
                     localStorage.removeItem('xuongin_machine'); currentAssignedMachine = null;
                     document.getElementById('txtUser').innerText = "Chế độ: Xem dữ liệu";
                     document.getElementById('btnLoginToggle').innerText = "Đăng nhập";
+                    renderMachines(); // CẬP NHẬT: Hiển thị lại tất cả máy khi đăng xuất
                 }
             } else {
                 document.getElementById('loginError').style.display = 'none';
@@ -450,6 +452,7 @@
             document.getElementById('txtUser').innerText = currentAssignedMachine === 'ADMIN' ? "Quyền: Quản Lý Tổng" : `Máy: MÁY ${getDisplayMachineName(currentAssignedMachine)}`;
             document.getElementById('btnLoginToggle').innerText = "Đăng xuất";
             window.closeLoginModal();
+            renderMachines(); // CẬP NHẬT: Thực hiện lọc giao diện chỉ hiển thị 1 máy ngay lập tức
         };
 
         window.toggleDowntimeReasonField = function() {
@@ -617,9 +620,9 @@
         }
 
         const statusLabelMap = {
-            'running': '▶️ ĐANG CHẠY HÀNG', 
-            'setup': '🔄 ĐANG THAY ĐƠN',
-            'size': '🔀 ĐANG THAY SIZE', 
+            'running': '⚡ ĐANG CHẠY HÀNG', 
+            'setup': '🔧 ĐANG THAY ĐƠN',
+            'size': '📏 ĐANG THAY SIZE', 
             'down': '🚨 MÁY DỪNG', 
             'nodata': '⚪ CHƯA CẬP NHẬT'
         };
@@ -636,12 +639,34 @@
         function renderMachines() {
             const carouselContainer = document.getElementById('carousel-container');
             const ovalContainer = document.getElementById('oval-container');
+            const zoneCarousel = document.getElementById('zone-carousel');
+            const zoneOval = document.getElementById('zone-oval');
+            const titleCarousel = document.getElementById('title-carousel');
+            const titleOval = document.getElementById('title-oval');
+
             carouselContainer.innerHTML = ''; ovalContainer.innerHTML = '';
+
+            // Mặc định hiện tất cả các vùng khu vực máy
+            zoneCarousel.style.display = 'block'; titleCarousel.style.display = 'block';
+            zoneOval.style.display = 'block'; titleOval.style.display = 'block';
 
             let counts = { running: 0, setup: 0, size: 0, down: 0, nodata: 0 };
             const sortedKeys = Object.keys(dbLocal).sort();
 
-            sortedKeys.forEach(id => {
+            // CẬP NHẬT: Lọc danh sách máy dựa trên quyền đăng nhập của thiết bị
+            let keysToRender = sortedKeys;
+            if (currentAssignedMachine && currentAssignedMachine !== 'ADMIN') {
+                keysToRender = sortedKeys.filter(id => id === currentAssignedMachine);
+                
+                // Ẩn vùng không liên quan để giao diện gọn gàng cho công nhân
+                if (currentAssignedMachine.startsWith('C')) {
+                    zoneOval.style.display = 'none'; titleOval.style.display = 'none';
+                } else if (currentAssignedMachine.startsWith('O')) {
+                    zoneCarousel.style.display = 'none'; titleCarousel.style.display = 'none';
+                }
+            }
+
+            keysToRender.forEach(id => {
                 const machine = dbLocal[id];
                 const status = machine.status || 'nodata';
                 const displayName = getDisplayMachineName(id);
@@ -651,7 +676,6 @@
 
                 const headerClass = isOvertime ? 'bg-alert-overtime' : `bg-${status}`;
                 
-                // ⭐ ĐÃ SỬA LỖI TẠI ĐÂY: Nếu trạng thái là "down" (Máy dừng) và có lý do sự cố, tự động chèn thêm lý do vào phía dưới chữ MÁY DỪNG
                 let labelText = statusLabelMap[status] || '⚪ CHƯA CẬP NHẬT';
                 if (status === 'down' && machine.downReason) {
                     labelText += `<br><span style="font-size: 11px; color: #64748b; font-weight: 500; display: block; margin-top: 3px;">(${machine.downReason})</span>`;
@@ -679,7 +703,7 @@
                 else ovalContainer.appendChild(card);
             });
 
-            document.getElementById('total-machines').innerText = sortedKeys.length;
+            document.getElementById('total-machines').innerText = keysToRender.length;
             document.getElementById('count-running').innerText = counts.running;
             document.getElementById('count-setup').innerText = counts.setup;
             document.getElementById('count-size').innerText = counts.size;
@@ -728,7 +752,7 @@
                     timeline.innerHTML += `
                         <div class="timeline-log-item">
                             <span>📅 ${l.productionDate || l.date} (${timeStr})</span>
-                            <span style="color:var(--status-${l.status}); font-weight:bold;">${statusLabelMap[l.status]?.replace('🟢 ', '')?.replace('🟡 ', '')?.replace('🟠 ', '')?.replace('🔴 ', '') || l.status}</span>
+                            <span style="color:var(--status-${l.status}); font-weight:bold;">${statusLabelMap[l.status]?.replace('⚡ ', '')?.replace('🔧 ', '')?.replace('📏 ', '')?.replace('🚨 ', '') || l.status}</span>
                             <span>⏱️ ${convertSecondsToHoursText(l.durationSeconds)}</span>
                         </div>
                     `;
