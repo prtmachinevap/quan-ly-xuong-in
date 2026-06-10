@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v17.6)</title>
+    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v17.7)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -160,7 +160,7 @@
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v17.6)</h1>
+            <h1>HỆ THỐNG QUẢN LÝ TRẠNG THÁI MÁY IN</h1>
             <div class="auth-zone">
                 <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo Năng Suất & OEE</button>
                 <span class="user-status" id="netStatus" style="background: #e2e8f0; color: #475569;">⚡ Đang kết nối...</span>
@@ -171,11 +171,11 @@
     </header>
 
     <div class="stats-bar">
-        <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">Tổng máy:</div><div class="stat-val" id="total-machines">0</div></div>
-        <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">🟢 Đang chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
-        <div class="stat-item" onclick="setFilter('setup', this)"><div class="stat-lbl">🟡 Đang thay đơn:</div><div class="stat-val text-setup" id="count-setup">0</div></div>
-        <div class="stat-item" onclick="setFilter('size', this)"><div class="stat-lbl">🟠 Đang thay size:</div><div class="stat-val text-size" id="count-size">0</div></div>
-        <div class="stat-item" onclick="setFilter('down', this)"><div class="stat-lbl">🔴 Máy dừng:</div><div class="stat-val text-down" id="count-down">0</div></div>
+        <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">🏭Tổng máy:</div><div class="stat-val" id="total-machines">0</div></div>
+        <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">▶️ Đang chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
+        <div class="stat-item" onclick="setFilter('setup', this)"><div class="stat-lbl">🔄 Đang thay đơn:</div><div class="stat-val text-setup" id="count-setup">0</div></div>
+        <div class="stat-item" onclick="setFilter('size', this)"><div class="stat-lbl">🔀 Đang thay size:</div><div class="stat-val text-size" id="count-size">0</div></div>
+        <div class="stat-item" onclick="setFilter('down', this)"><div class="stat-lbl">🚨 Máy dừng:</div><div class="stat-val text-down" id="count-down">0</div></div>
     </div>
 
     <div class="section-title">KHU MÁY TRÒN CAROUSEL</div>
@@ -228,10 +228,10 @@
                     <thead>
                         <tr>
                             <th>Mã Máy</th>
-                            <th>🟢 Đang chạy hàng</th>
-                            <th>🟡 Đang thay đơn</th>
-                            <th>🟠 Đang thay size</th>
-                            <th>🔴 Máy dừng</th>
+                            <th>▶️ Đang chạy hàng</th>
+                            <th>🔄 Đang thay đơn</th>
+                            <th>🔀 Đang thay size</th>
+                            <th>🚨 Máy dừng</th>
                             <th>🎯 Hiệu Suất OEE</th>
                         </tr>
                     </thead>
@@ -259,12 +259,11 @@
             
             <div class="form-group"><label>TRẠNG THÁI MÁY</label>
                 <select id="inputStatus" onchange="toggleDowntimeReasonField()">
-                    
-                    <option value="running">🟢 Đang chạy hàng</option>
-                    <option value="setup">🟡 Đang thay đơn</option>
-                    <option value="size">🟠 Đang thay size</option>
-                    <option value="down">🔴 Máy dừng</option>
                     <option value="nodata">⚪ Chưa cập nhật dữ liệu</option>
+                    <option value="running">▶️ Đang chạy hàng</option>
+                    <option value="setup">🔄 Đang thay đơn</option>
+                    <option value="size">🔀 Đang thay size</option>
+                    <option value="down">🚨 Máy dừng</option>
                 </select>
             </div>
 
@@ -617,12 +616,11 @@
             return diffSeconds > 3600; 
         }
 
-        // CHỈNH SỬA: Bộ nhãn hiển thị Map chuẩn hóa Tiếng Việt theo yêu cầu
         const statusLabelMap = {
-            'running': '🟢 ĐANG CHẠY HÀNG', 
-            'setup': '🟡 ĐANG THAY ĐƠN',
-            'size': '🟠 ĐANG THAY SIZE', 
-            'down': '🔴 MÁY DỪNG', 
+            'running': '▶️ ĐANG CHẠY HÀNG', 
+            'setup': '🔄 ĐANG THAY ĐƠN',
+            'size': '🔀 ĐANG THAY SIZE', 
+            'down': '🚨 MÁY DỪNG', 
             'nodata': '⚪ CHƯA CẬP NHẬT'
         };
 
@@ -652,7 +650,12 @@
                 if (counts[status] !== undefined) counts[status]++;
 
                 const headerClass = isOvertime ? 'bg-alert-overtime' : `bg-${status}`;
-                const labelText = statusLabelMap[status] || '⚪ CHƯA CẬP NHẬT';
+                
+                // ⭐ ĐÃ SỬA LỖI TẠI ĐÂY: Nếu trạng thái là "down" (Máy dừng) và có lý do sự cố, tự động chèn thêm lý do vào phía dưới chữ MÁY DỪNG
+                let labelText = statusLabelMap[status] || '⚪ CHƯA CẬP NHẬT';
+                if (status === 'down' && machine.downReason) {
+                    labelText += `<br><span style="font-size: 11px; color: #64748b; font-weight: 500; display: block; margin-top: 3px;">(${machine.downReason})</span>`;
+                }
 
                 const card = document.createElement('div');
                 card.className = 'machine-card';
