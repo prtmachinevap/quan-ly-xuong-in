@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Giám Sát Xưởng In - Tinh Gọn (v12.3)</title>
+    <title>Hệ Thống Giám Sát & Quản Trị Xưởng In (v13.0)</title>
     <style>
         :root {
             --bg-main: #f1f5f9;   
@@ -17,10 +17,10 @@
             --status-size: #f97316;    
             --status-ink: #06b6d4;     
             --status-down: #ef4444;    
+            --status-nodata: #64748b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
         body { background-color: var(--bg-main); color: var(--text-main); padding: 10px; min-height: 100vh; display: flex; flex-direction: column; }
 
         header { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; gap: 4px; }
@@ -29,7 +29,11 @@
         
         .auth-zone { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .user-status { font-size: 11px; font-weight: 600; color: #2563eb; background: #dbeafe; padding: 4px 8px; border-radius: 4px; }
-        .btn-auth { padding: 4px 10px; font-size: 11px; font-weight: 600; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer; }
+        .btn-auth { padding: 4px 10px; font-size: 11px; font-weight: 600; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+        .btn-auth:hover { background: #f8fafc; border-color: #94a3b8; }
+        
+        .btn-report-trigger { background: #10b981 !important; color: white !important; border-color: #059669 !important; }
+        .btn-excel { background: #059669 !important; color: white !important; }
 
         .stats-bar { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; margin: 8px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .stat-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; padding: 6px 2px; border-radius: 6px; border: 1px solid #e2e8f0; cursor: pointer; user-select: none; }
@@ -42,6 +46,7 @@
         .text-size { color: var(--status-size); }
         .text-ink { color: var(--status-ink); }
         .text-down { color: var(--status-down); }
+        .text-nodata { color: var(--status-nodata); }
 
         .section-title { font-size: 12px; font-weight: 700; margin: 10px 0 6px 0; padding-left: 6px; border-left: 3px solid #2563eb; color: #2563eb; }
         .machine-grid { display: grid; gap: 8px; width: 100%; }
@@ -52,7 +57,7 @@
         .machine-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
         .machine-card.hidden-by-filter { display: none !important; }
 
-        .machine-header { padding: 6px 8px; font-weight: 700; font-size: 12px; color: #ffffff; display: flex; justify-content: space-between; align-items: center; }
+        .machine-header { padding: 6px 8px; font-weight: 700; font-size: 12px; color: #ffffff; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.3s; }
         .machine-timer { font-family: monospace; font-size: 10px; background-color: rgba(0, 0, 0, 0.2); padding: 2px 4px; border-radius: 3px; }
 
         .bg-running { background-color: var(--status-running); color: #fff; }
@@ -60,18 +65,25 @@
         .bg-size { background-color: var(--status-size); color: #fff; }
         .bg-ink { background-color: var(--status-ink); color: #fff; }
         .bg-down { background-color: var(--status-down); color: #fff; }
+        .bg-nodata { background-color: var(--status-nodata); color: #fff; }
+
+        @keyframes pulse-warning {
+            0% { background-color: #ef4444; color: #fff; }
+            50% { background-color: #f59e0b; color: #0f172a; }
+            100% { background-color: #ef4444; color: #fff; }
+        }
+        .bg-alert-overtime { animation: pulse-warning 1.2s infinite; }
 
         .machine-body { padding: 6px 8px; font-size: 11.5px; display: flex; flex-direction: column; gap: 4px; background-color: #ffffff; }
         .job-code { font-weight: 700; font-size: 12.5px; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
         .job-detail { font-size: 10.5px; line-height: 1.3; }
         .job-detail div { display: flex; margin-bottom: 1px; }
-        .job-detail span { color: var(--text-muted); width: 55px; flex-shrink: 0; }
+        .job-detail span { color: var(--text-muted); width: 80px; flex-shrink: 0; } 
         .job-detail b { color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* KHU VỰC CHỮ TRẠNG THÁI CHÍNH XÁC */
         .status-display-text { font-size: 11px; font-weight: 700; text-align: center; padding: 4px 0; margin-top: 2px; border-top: 1px dashed #e2e8f0; }
 
-        /* CẤU HÌNH TRÊN PC / TV TỔNG XƯỞNG */
         @media (min-width: 1024px) {
             body { padding: 4px 10px; height: 100vh; width: 100vw; overflow: hidden; }
             header { flex-direction: row; justify-content: space-between; align-items: center; height: 4vh; padding-bottom: 0; }
@@ -88,18 +100,34 @@
             .machine-body { padding: 3px 6px; font-size: 10.5px; justify-content: space-between; height: 100%; gap: 0; }
             .job-code { font-size: 11.5px; }
             .job-detail { font-size: 9.5px; line-height: 1.15; }
-            .job-detail span { width: 50px; }
+            .job-detail span { width: 75px; } 
             .status-display-text { font-size: 10px; padding: 2px 0; }
         }
 
-        /* POPUP MODAL ĐÃ TINH GỌN */
+        /* MODALS */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 1000; padding: 10px; overflow-y: auto; }
-        .modal-box { position: relative; margin: 5vh auto; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; width: 100%; max-width: 420px; color: #0f172a; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .modal-box { position: relative; margin: 2vh auto; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; width: 100%; max-width: 440px; color: #0f172a; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .modal-box h3 { font-size: 13px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 10px; }
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 10px; color: #475569; margin-bottom: 2px; font-weight: 600; }
         .form-group input, .form-group select { width: 100%; padding: 7px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; color: #0f172a; }
         .form-row { display: flex; gap: 6px; }
+        
+        #reportModalBox { max-width: 950px; width: 95vw; }
+        .filter-report-bar { display: flex; gap: 10px; align-items: flex-end; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .report-table-wrapper { overflow-x: auto; max-height: 52vh; border: 1px solid #cbd5e1; border-radius: 6px; }
+        .report-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; }
+        .report-table th { background: #f1f5f9; position: sticky; top: 0; padding: 8px; font-weight: 700; border-bottom: 2px solid #cbd5e1; text-align: center; white-space: nowrap; }
+        .report-table td { padding: 7px; border-bottom: 1px solid #e2e8f0; text-align: center; white-space: nowrap; }
+        .report-table tr:hover { background: #f8fafc; }
+        .oee-bad { background: #fee2e2 !important; color: #ef4444; font-weight: 700; }
+        .oee-good { background: #dcfce7 !important; color: #15803d; font-weight: 700; }
+
+        .history-section { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 8px; margin: 10px 0; }
+        .history-title { font-size: 10.5px; font-weight: 700; color: #1e3a8a; margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .history-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 10.5px; }
+        .history-item { background: #fff; border: 1px solid #e2e8f0; padding: 4px 6px; border-radius: 4px; display: flex; justify-content: space-between; }
+        
         .modal-buttons { display: flex; justify-content: space-between; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         .right-buttons { display: flex; gap: 6px; }
         .btn { padding: 7px 12px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 11.5px; }
@@ -107,16 +135,20 @@
         .btn-cancel { background-color: #e2e8f0; color: #475569; }
         .btn-save { background-color: #2563eb; color: white; }
         .modal-current-timer { font-size: 11px; color: #ef4444; font-weight: bold; margin-bottom: 8px; text-align: center; background: #fef2f2; padding: 4px; border-radius: 4px; }
+
+        #loginModalBox { max-width: 340px; margin: 15vh auto; }
+        .login-error-msg { display: none; font-size: 10.5px; color: #ef4444; font-weight: 600; margin-bottom: 8px; text-align: center; background: #fef2f2; padding: 6px; border-radius: 4px; border: 1px solid #fee2e2; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG GIÁM SÁT XƯỞNG IN (BẢN V12.3)</h1>
+            <h1>QUẢN TRỊ & GIÁM SÁT SẢN XUẤT XƯỞNG IN (v13.0)</h1>
             <div class="auth-zone">
+                <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo & Hiệu Suất OEE</button>
                 <span class="user-status" id="txtUser">Chế độ: Xem dữ liệu</span>
-                <button class="btn-auth" id="btnLoginToggle" onclick="handleSimpleAuth()">Đăng nhập</button>
+                <button class="btn-auth" id="btnLoginToggle" onclick="handleAuthAction()">Đăng nhập</button>
             </div>
         </div>
     </header>
@@ -136,13 +168,93 @@
     <div class="section-title">KHU MÁY DÀI OVAL</div>
     <div class="zone-oval"><div class="machine-grid" id="oval-container"></div></div>
 
+    <div class="modal-overlay" id="loginOverlay">
+        <div class="modal-box" id="loginModalBox">
+            <h3>ĐĂNG NHẬP HỆ THỐNG</h3>
+            <div class="login-error-msg" id="loginError">Sai mật khẩu đăng nhập!</div>
+            <div class="form-group">
+                <label>TÊN MÁY SỬ DỤNG</label>
+                <input type="text" id="loginUsername" placeholder="Ví dụ: mayc1, mayo2, admin" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>MẬT KHẨU TRUY CẬP</label>
+                <input type="password" id="loginPassword" placeholder="Admin: 123 | Máy: 123 + tên máy">
+            </div>
+            <div class="modal-buttons" style="border-top: none; padding-top: 0; margin-top: 10px;">
+                <div style="width: 100%; display: flex; justify-content: flex-end; gap: 6px;">
+                    <button class="btn btn-cancel" onclick="closeLoginModal()">Hủy</button>
+                    <button class="btn btn-save" onclick="submitSimpleLogin()">Đăng nhập</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="qtyOverlay" style="z-index: 1100; background: rgba(0,0,0,0.6);">
+        <div class="modal-box" style="max-width: 340px; margin: 20vh auto;">
+            <h3 style="color:#10b981;">🔢 Ghi Nhận Sản Lượng Đơn</h3>
+            <div class="form-group">
+                <label>SỐ LƯỢNG ÁO ĐÃ IN HOÀN THÀNH (PCS)</label>
+                <input type="number" id="inputQtyPcs" value="0" min="0" onfocus="this.select()">
+            </div>
+            <div class="modal-buttons" style="border:none; padding-top:0;">
+                <button class="btn btn-save" style="width:100%" onclick="submitQtyAndContinueSave()">Xác Nhận & Lưu Trạng Thái</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="reportOverlay">
+        <div class="modal-box" id="reportModalBox">
+            <h3>📊 BÁO CÁO HIỆU SUẤT TỔNG HỢP & NĂNG SUẤT XƯỞNG</h3>
+            
+            <div class="filter-report-bar">
+                <div class="form-group" style="margin-bottom:0; flex: 1; min-width: 130px;">
+                    <label>TỪ NGÀY</label>
+                    <input type="date" id="reportFromDate">
+                </div>
+                <div class="form-group" style="margin-bottom:0; flex: 1; min-width: 130px;">
+                    <label>ĐẾN NGÀY</label>
+                    <input type="date" id="reportToDate">
+                </div>
+                <button class="btn btn-save" style="height: 33px;" onclick="calculateDetailedReport()">Trích Xuất</button>
+                <button class="btn btn-excel" style="height: 33px;" onclick="exportReportToCSV()">📥 Xuất Excel</button>
+            </div>
+
+            <div class="report-table-wrapper">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Mã Máy</th>
+                            <th>🟢 Chạy Hàng</th>
+                            <th>🟡 Thay Đơn</th>
+                            <th>🟠 Thay Size</th>
+                            <th>🔵 Chỉnh Mực</th>
+                            <th>🔴 Dừng Máy</th>
+                            <th>🔢 Sản Lượng (Pcs)</th>
+                            <th>⚡ Tốc Độ (Áo/h)</th>
+                            <th>🎯 Hiệu Suất OEE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr><td colspan="9" style="color:#64748b; padding:20px;">Vui lòng trích xuất dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-buttons">
+                <span style="font-size:10px; color:#64748b;">* Tiêu chuẩn OEE ngành in mục tiêu: > 60% (Xanh: Đạt | Đỏ: Thấp, lãng phí thời gian setup).</span>
+                <button class="btn btn-cancel" onclick="closeReportModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
             <h3 id="modalTitle">Cập nhật Máy</h3>
             <div class="modal-current-timer" id="modalTimerDisplay">Thời gian: 00:00:00</div>
             
             <div class="form-group"><label>TRẠNG THÁI MÁY</label>
-                <select id="inputStatus">
+                <select id="inputStatus" onchange="toggleDowntimeReasonField()">
+                    <option value="nodata">⚪ Chưa cập nhật dữ liệu (No Data)</option>
                     <option value="running">🟢 Đang chạy hàng (Production)</option>
                     <option value="setup">🟡 Đang thay đơn / Lên khung (Setup)</option>
                     <option value="size">🟠 Đang thay size / Chỉnh gá (Size Change)</option>
@@ -150,6 +262,33 @@
                     <option value="down">🔴 Máy dừng / Gặp sự cố (Downtime)</option>
                 </select>
             </div>
+
+            <div class="form-group" id="downtimeReasonGroup" style="display: none; background: #fef2f2; padding: 6px; border-radius: 4px; border: 1px dashed #fca5a5;">
+                <label style="color:#ef4444;">LÝ DO MÁY DỪNG / SỰ CỐ</label>
+                <select id="inputDownReason">
+                    <option value="Hư hỏng máy móc">Hư hỏng cơ khí / lỗi máy</option>
+                    <option value="Chờ bán thành phẩm">Chờ hàng / Chờ vải in</option>
+                    <option value="Chờ khung / Bản in">Chờ khung / Bản in chưa xong</option>
+                    <option value="Lỗi kỹ thuật / Sự cố mực">Lỗi kỹ thuật / Sự cố pha mực</option>
+                    <option value="Giao ca / Nghỉ giữa giờ">Giao ca / Nghỉ giữa ca</option>
+                    <option value="Lý do khác">Lý do phát sinh khác</option>
+                </select>
+            </div>
+
+            <div class="history-section">
+                <div class="history-title">
+                    <span>📊 TỔNG THỜI GIAN TÍCH LŨY TRỌN ĐỜI</span>
+                    <span style="color: #ef4444; display:none; cursor: pointer; text-decoration: underline;" id="btnResetHistory">Reset giờ</span>
+                </div>
+                <div class="history-grid">
+                    <div class="history-item"><span>🟢 Chạy hàng:</span><b id="hist-running">0 Giờ 0P</b></div>
+                    <div class="history-item"><span>🟡 Thay đơn:</span><b id="hist-setup">0 Giờ 0P</b></div>
+                    <div class="history-item"><span>🟠 Thay size:</span><b id="hist-size">0 Giờ 0P</b></div>
+                    <div class="history-item"><span>🔵 Chỉnh mực:</span><b id="hist-ink">0 Giờ 0P</b></div>
+                    <div class="history-item" style="grid-column: span 2;"><span>🔴 Sự cố / Dừng máy:</span><b id="hist-down">0 Giờ 0P</b></div>
+                </div>
+            </div>
+
             <div class="form-group"><label>TÊN KHÁCH HÀNG</label>
                 <select id="inputCustomer">
                     <option value="Chưa cập nhật dữ liệu">Chưa cập nhật dữ liệu</option>
@@ -179,7 +318,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAHXYx6bqDTw6tpbIaLwzCAzxOyBbge6b4",
@@ -194,11 +333,15 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
         const machinesRef = ref(database, 'machines');
+        const logsRef = ref(database, 'logs');
 
-        let dbLocal = {};
-        let selectedMachineId = null;
-        let currentFilterStatus = 'all';
-        let currentAssignedMachine = null;
+        let dbLocal = {}; let dbLogsLocal = {};
+        let selectedMachineId = null; let currentFilterStatus = 'all'; let currentAssignedMachine = null;
+        let lastReportCalculatedData = []; // Phục vụ xuất file excel nhanh
+
+        const todayStr = new Date().toISOString().split('T')[0];
+document.getElementById('reportFromDate').value = todayStr; // Đã sửa ID cho chuẩn
+document.getElementById('reportToDate').value = todayStr;
 
         if (localStorage.getItem('xuongin_machine')) {
             currentAssignedMachine = localStorage.getItem('xuongin_machine');
@@ -206,102 +349,234 @@
             document.getElementById('btnLoginToggle').innerText = "Đăng xuất";
         }
 
-        window.handleSimpleAuth = function() {
+        window.handleAuthAction = function() {
             if (currentAssignedMachine) {
-                localStorage.removeItem('xuongin_machine');
-                currentAssignedMachine = null;
-                document.getElementById('txtUser').innerText = "Chế độ: Xem dữ liệu";
-                document.getElementById('btnLoginToggle').innerText = "Đăng nhập";
+                if(confirm("Bạn muốn đăng xuất khỏi hệ thống giám sát?")) {
+                    localStorage.removeItem('xuongin_machine'); currentAssignedMachine = null;
+                    document.getElementById('txtUser').innerText = "Chế độ: Xem dữ liệu";
+                    document.getElementById('btnLoginToggle').innerText = "Đăng nhập";
+                }
             } else {
-                const username = prompt("Nhập Tên Máy (ví dụ: mayc1, mayo2):").toLowerCase().trim();
-                if (!username) return;
-                const password = prompt("Nhập mật khẩu (ví dụ: 123):");
-                if (password !== '123') { alert("Sai mật khẩu xưởng!"); return; }
+                document.getElementById('loginError').style.display = 'none';
+                document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = '';
+                document.getElementById('loginOverlay').style.display = 'block';
+                setTimeout(() => document.getElementById('loginUsername').focus(), 150);
+            }
+        };
 
-                if (username === 'admin') {
-                    currentAssignedMachine = 'ADMIN';
-                } else {
-                    const prefix = username.startsWith('mayc') ? 'C' : 'O';
-                    const num = username.replace('mayc', '').replace('mayo', '');
-                    if (!num || isNaN(num)) { alert("Tên máy sai định dạng!"); return; }
-                    currentAssignedMachine = prefix + String(num).padStart(2, '0');
+        window.closeLoginModal = function() { document.getElementById('loginOverlay').style.display = 'none'; };
+
+        // PHÂN QUYỀN MẬT KHẨU RIÊNG CHO TỪNG MÁY (Pass: 123 + tên máy viết thường)
+        window.submitSimpleLogin = function() {
+            const username = document.getElementById('loginUsername').value.toLowerCase().trim();
+            const password = document.getElementById('loginPassword').value.toLowerCase().trim();
+            const errorLabel = document.getElementById('loginError');
+
+            if (!username) { errorLabel.innerText = "Vui lòng nhập tên máy!"; errorLabel.style.display = 'block'; return; }
+
+            if (username === 'admin') {
+                if (password !== '123') { errorLabel.innerText = "Sai mật khẩu Admin!"; errorLabel.style.display = 'block'; return; }
+                currentAssignedMachine = 'ADMIN';
+            } else {
+                // Xác thực pass máy: ví dụ đăng nhập máy "mayc01" thì mật khẩu chuẩn phải là "123c01"
+                const cleanMachineName = username.replace('may', ''); // còn lại dạng c01 hoặc o05
+                const expectedPassword = '123' + cleanMachineName;
+                if (password !== expectedPassword) {
+                    errorLabel.innerText = `Sai mật khẩu! Mật khẩu máy này là: 123${cleanMachineName}`;
+                    errorLabel.style.display = 'block';
+                    return;
                 }
 
-                localStorage.setItem('xuongin_machine', currentAssignedMachine);
-                document.getElementById('txtUser').innerText = currentAssignedMachine === 'ADMIN' ? "Quyền: Quản Lý Tổng" : `Máy: MÁY ${currentAssignedMachine}`;
-                document.getElementById('btnLoginToggle').innerText = "Đăng xuất";
+                const prefix = username.startsWith('mayc') ? 'C' : 'O';
+                const num = username.replace('mayc', '').replace('mayo', '');
+                if (!num || isNaN(num)) { errorLabel.innerText = "Tên máy định dạng sai!"; errorLabel.style.display = 'block'; return; }
+                currentAssignedMachine = prefix + String(num).padStart(2, '0');
             }
+
+            localStorage.setItem('xuongin_machine', currentAssignedMachine);
+            document.getElementById('txtUser').innerText = currentAssignedMachine === 'ADMIN' ? "Quyền: Quản Lý Tổng" : `Máy: MÁY ${currentAssignedMachine}`;
+            document.getElementById('btnLoginToggle').innerText = "Đăng xuất";
+            window.closeLoginModal();
+        };
+
+        window.toggleDowntimeReasonField = function() {
+            const status = document.getElementById('inputStatus').value;
+            document.getElementById('downtimeReasonGroup').style.display = (status === 'down') ? 'block' : 'none';
+        };
+
+        window.openReportModal = function() {
+            document.getElementById('reportOverlay').style.display = 'block';
+            calculateDetailedReport();
+        };
+        window.closeReportModal = function() { document.getElementById('reportOverlay').style.display = 'none'; };
+
+        // TRÍCH XUẤT BÁO CÁO TOÀN DIỆN: TÍNH OEE, SẢN LƯỢNG VÀ TỐC ĐỘ IN
+        window.calculateDetailedReport = function() {
+            const fromDate = document.getElementById('reportFromDate').value;
+            const toDate = document.getElementById('reportToDate').value;
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = "";
+
+            if (!fromDate || !toDate) { alert("Vui lòng chọn ngày!"); return; }
+
+            let reportData = {};
+            Object.keys(dbLocal).sort().forEach(mid => {
+                reportData[mid] = { running: 0, setup: 0, size: 0, ink: 0, down: 0, qty: 0 };
+            });
+
+            if (dbLogsLocal) {
+                Object.keys(dbLogsLocal).forEach(logId => {
+                    const log = dbLogsLocal[logId];
+                    if (log.date >= fromDate && log.date <= toDate && reportData[log.machineId]) {
+                        if (reportData[log.machineId][log.status] !== undefined) {
+                            reportData[log.machineId][log.status] += parseInt(log.durationSeconds || 0);
+                        }
+                        if (log.producedQty) {
+                            reportData[log.machineId].qty += parseInt(log.producedQty || 0);
+                        }
+                    }
+                });
+            }
+
+            lastReportCalculatedData = [];
+
+            Object.keys(reportData).sort().forEach(mid => {
+                const r = reportData[mid];
+                const totalActiveSeconds = r.running + r.setup + r.size + r.ink + r.down;
+                
+                // Công thức tính OEE thực tế của ngành in lụa tự động
+                let oee = 0;
+                if (totalActiveSeconds > 0) {
+                    oee = Math.round((r.running / totalActiveSeconds) * 100);
+                }
+
+                // Tính tốc độ in áo trung bình trên giờ
+                let speedPerHour = 0;
+                if (r.running > 0) {
+                    speedPerHour = Math.round(r.qty / (r.running / 3600));
+                }
+
+                const oeeClass = (oee < 60 && totalActiveSeconds > 0) ? 'oee-bad' : (oee >= 60 ? 'oee-good' : '');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:700; background:#f8fafc;">MÁY ${mid}</td>
+                    <td>${convertSecondsToHoursText(r.running)}</td>
+                    <td>${convertSecondsToHoursText(r.setup)}</td>
+                    <td>${convertSecondsToHoursText(r.size)}</td>
+                    <td>${convertSecondsToHoursText(r.ink)}</td>
+                    <td>${convertSecondsToHoursText(r.down)}</td>
+                    <td style="font-weight:700; color:#2563eb;">${r.qty.toLocaleString()}</td>
+                    <td style="font-weight:600; color:#059669;">${speedPerHour}/h</td>
+                    <td class="${oeeClass}">${totalActiveSeconds > 0 ? oee + '%' : '0%'}</td>
+                `;
+                tbody.appendChild(tr);
+
+                lastReportCalculatedData.push({
+                    machine: `MAY ${mid}`, running: convertSecondsToHoursText(r.running), setup: convertSecondsToHoursText(r.setup),
+                    size: convertSecondsToHoursText(r.size), ink: convertSecondsToHoursText(r.ink), down: convertSecondsToHoursText(r.down),
+                    qty: r.qty, speed: speedPerHour + '/h', oee: oee + '%'
+                });
+            });
+        };
+
+        // TÍNH NĂNG 1: XUẤT FILE FILE EXCEL (.CSV CHUẨN ĐỌC ĐƯỢC TIẾNG VIỆT)
+        window.exportReportToCSV = function() {
+            if (lastReportCalculatedData.length === 0) { alert("Không có dữ liệu để xuất! Hãy bấm Trích xuất trước."); return; }
+            let csvContent = "\uFEFF"; // Lệnh mã hóa BOM chống lỗi font tiếng Việt trên Excel
+            csvContent += "Ma May,Chay Hang,Thay Don,Thay Size,Chinh Muc,Dung May,San Luong (Pcs),Toc Do (Ao/h),Hieu Suat OEE\n";
+            
+            lastReportCalculatedData.forEach(row => {
+                csvContent += `"${row.machine}","${row.running}","${row.setup}","${row.size}","${row.ink}","${row.down}","${row.qty}","${row.speed}","${row.oee}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Bao_Cao_Xuong_In_${document.getElementById('reportFromDate').value}_den_${document.getElementById('reportToDate').value}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
 
         window.setFilter = function(status, element) {
             currentFilterStatus = status;
             document.querySelectorAll('.stat-item').forEach(item => item.classList.remove('active-filter'));
-            element.classList.add('active-filter');
-            applyFilterToCards();
+            element.classList.add('active-filter'); applyFilterToCards();
         };
 
         function applyFilterToCards() {
             Object.keys(dbLocal).forEach(id => {
-                const card = document.getElementById(`card-${id}`);
-                if (!card) return;
-                if (currentFilterStatus === 'all' || dbLocal[id].status === currentFilterStatus) {
-                    card.classList.remove('hidden-by-filter');
-                } else {
-                    card.classList.add('hidden-by-filter');
-                }
+                const card = document.getElementById(`card-${id}`); if (!card) return;
+                if (currentFilterStatus === 'all' || dbLocal[id].status === currentFilterStatus) card.classList.remove('hidden-by-filter');
+                else card.classList.add('hidden-by-filter');
             });
         }
 
         function formatDuration(startMs) {
             if (!startMs) return "00:00:00";
-            const diffSec = Math.floor((Date.now() - startMs) / 1000);
-            if (diffSec < 0) return "00:00:00";
-            const hrs = Math.floor(diffSec / 3600);
-            const mins = Math.floor((diffSec % 3600) / 60);
+            const diffSec = Math.floor((Date.now() - startMs) / 1000); if (diffSec < 0) return "00:00:00";
+            const hrs = Math.floor(diffSec / 3600); const mins = Math.floor((diffSec % 3600) / 60);
             return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(diffSec % 60).padStart(2, '0')}`;
         }
 
+        function convertSecondsToHoursText(totalSeconds) {
+            if (!totalSeconds || isNaN(totalSeconds)) return "0h 0m";
+            const hrs = Math.floor(totalSeconds / 3600); const mins = Math.floor((totalSeconds % 3600) / 60);
+            return `${hrs}h ${mins}m`;
+        }
+
+        function checkOvertimeAlert(status, startMs) {
+            if (!startMs) return false;
+            return ['setup', 'size', 'ink', 'down'].includes(status) && Math.floor((Date.now() - startMs) / 1000) >= 1800; 
+        }
+
         onValue(machinesRef, (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-            dbLocal = data;
-            renderDashboard(data);
+            const data = snapshot.val(); if (!data) return;
+            dbLocal = data; renderDashboard(data);
+            if (selectedMachineId && data[selectedMachineId]) updateHistoryDisplayInModal(data[selectedMachineId]);
         });
 
-        // CẬP NHẬT PHẦN HIỂN THỊ CHỮ TRẠNG THÁI RÕ RÀNG
+        onValue(logsRef, (snapshot) => { dbLogsLocal = snapshot.val() || {}; });
+
         function renderDashboard(data) {
             const carouselContainer = document.getElementById('carousel-container');
             const ovalContainer = document.getElementById('oval-container');
             carouselContainer.innerHTML = ""; ovalContainer.innerHTML = "";
-
-            let counts = { running: 0, setup: 0, size: 0, ink: 0, down: 0 };
+            let counts = { running: 0, setup: 0, size: 0, ink: 0, down: 0, nodata: 0 };
 
             Object.keys(data).sort().forEach(id => {
-                const machine = data[id];
-                counts[machine.status]++;
-
+                const machine = data[id]; if (counts[machine.status] !== undefined) counts[machine.status]++;
+                
                 let statusLabel = "Đang chờ";
-                if (machine.status === 'running') statusLabel = "Đang chạy hàng";
-                else if (machine.status === 'setup') statusLabel = "Thay đơn";
-                else if (machine.status === 'size') statusLabel = "Thay size";
-                else if (machine.status === 'ink') statusLabel = "Chỉnh mực";
-                else if (machine.status === 'down') statusLabel = "Sự cố";
+                if (machine.status === 'running') statusLabel = "🟢 Chạy hàng";
+                else if (machine.status === 'setup') statusLabel = "🟡 Thay đơn";
+                else if (machine.status === 'size') statusLabel = "🟠 Thay size";
+                else if (machine.status === 'ink') statusLabel = "🔵 Chỉnh mực";
+                else if (machine.status === 'down') statusLabel = `🔴 Dừng: ${machine.downReason || 'Sự cố'}`;
+                else if (machine.status === 'nodata') statusLabel = "⚪ Chờ dữ liệu";
+
+                const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
+                const headerClass = isOvertime ? 'bg-alert-overtime' : `bg-${machine.status || 'nodata'}`;
 
                 const card = document.createElement('div');
                 card.className = 'machine-card'; card.id = `card-${id}`;
                 card.addEventListener('click', () => openModal(id));
                 card.innerHTML = `
-                    <div class="machine-header bg-${machine.status}"><span>MÁY ${machine.id}</span><span class="machine-timer" id="timer-${id}">${formatDuration(machine.statusStartTime)}</span></div>
+                    <div class="machine-header ${headerClass}" id="header-${id}">
+                        <span>${isOvertime ? '⚠️ ' : ''}MÁY ${machine.id}</span>
+                        <span class="machine-timer" id="timer-${id}">${formatDuration(machine.statusStartTime)}</span>
+                    </div>
                     <div class="machine-body">
                         <div class="job-code">${machine.style || '---'}</div>
                         <div class="job-detail">
                             <div><span>Khách:</span><b style="color: #475569;">${machine.customer || '---'}</b></div>
-                            <div><span>Mã đơn:</span><b>${machine.mo || '---'}</b></div>
-                            <div><span>Vị trí:</span><b>${machine.printDetail || '---'}</b></div>
-                            <div><span>Khổ Film:</span><b>${machine.filmSize || '---'}</b></div>
+                            <div><span>Mã đơn (MO):</span><b>${machine.mo || '---'}</b></div>
+                            <div><span>Vị trí in:</span><b>${machine.printDetail || '---'}</b></div>
                         </div>
-                        <div class="status-display-text" style="color:var(--status-${machine.status});">
-                            ${statusLabel}
+                        <div class="status-display-text" style="color:var(--status-${machine.status || 'nodata'});">
+                            ${statusLabel} ${isOvertime ? '(QUÁ 30P)' : ''}
                         </div>
                     </div>`;
                 if (id.startsWith('C')) carouselContainer.appendChild(card); else ovalContainer.appendChild(card);
@@ -319,56 +594,157 @@
         function openModal(id) {
             if (!currentAssignedMachine) { alert("Bạn chưa đăng nhập!"); return; }
             if (currentAssignedMachine !== 'ADMIN' && currentAssignedMachine !== id) {
-                alert(`Điện thoại bạn gán cho MÁY ${currentAssignedMachine}. Không thể sửa MÁY ${id}!`); return;
+                alert(`Tài khoản của bạn gán cố định cho MÁY ${currentAssignedMachine}. Không thể sửa MÁY ${id}!`); return;
             }
 
-            selectedMachineId = id;
-            const m = dbLocal[id];
+            selectedMachineId = id; const m = dbLocal[id];
             document.getElementById('modalTitle').innerText = `CẬP NHẬT: MÁY ${id}`;
-            document.getElementById('inputStatus').value = m.status;
+            document.getElementById('inputStatus').value = m.status || 'nodata';
+            document.getElementById('inputDownReason').value = m.downReason || 'Hư hỏng máy móc';
             document.getElementById('inputCustomer').value = m.customer || 'Chưa cập nhật dữ liệu';
-            document.getElementById('inputMO').value = (m.mo !== '---' && m.mo !== 'Chưa cập nhật dữ liệu') ? m.mo : '';
-            document.getElementById('inputStyle').value = (m.style !== '---' && m.style !== 'Chưa cập nhật dữ liệu') ? m.style : '';
+            document.getElementById('inputMO').value = (m.mo !== '---') ? m.mo : '';
+            document.getElementById('inputStyle').value = (m.style !== '---') ? m.style : '';
             document.getElementById('inputPrintDetail').value = m.printDetail || 'Thân trước';
             document.getElementById('inputFilmSize').value = m.filmSize !== '---' ? m.filmSize : '';
+            
+            toggleDowntimeReasonField(); updateHistoryDisplayInModal(m);
+            document.getElementById('btnResetHistory').style.display = currentAssignedMachine === 'ADMIN' ? 'inline' : 'none';
             document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function updateHistoryDisplayInModal(machineData) {
+            document.getElementById('hist-running').innerText = convertSecondsToHoursText(machineData.total_running);
+            document.getElementById('hist-setup').innerText = convertSecondsToHoursText(machineData.total_setup);
+            document.getElementById('hist-size').innerText = convertSecondsToHoursText(machineData.total_size);
+            document.getElementById('hist-ink').innerText = convertSecondsToHoursText(machineData.total_ink);
+            document.getElementById('hist-down').innerText = convertSecondsToHoursText(machineData.total_down);
         }
 
         function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; selectedMachineId = null; }
 
+        // BIẾN TẠM LƯU TRỮ TRƯỚC KHI HỎI SẢN LƯỢNG ÁO
+        let temporaryUpdateObject = null;
+
         function saveMachineData() {
             if (!selectedMachineId) return;
-            const oldS = dbLocal[selectedMachineId].status;
-            const newS = document.getElementById('inputStatus').value;
-            let startTime = oldS !== newS ? Date.now() : dbLocal[selectedMachineId].statusStartTime;
+            const oldMachine = dbLocal[selectedMachineId];
+            const oldStatus = oldMachine.status;
+            const newStatus = document.getElementById('inputStatus').value;
+            
+            let startTime = oldMachine.statusStartTime;
+            let updates = {};
+            const now = Date.now();
 
-            const machineUpdates = {
-                status: newS, statusStartTime: startTime,
-                customer: document.getElementById('inputCustomer').value,
-                mo: document.getElementById('inputMO').value || '---',
-                style: document.getElementById('inputStyle').value || '---',
-                printDetail: document.getElementById('inputPrintDetail').value,
-                filmSize: document.getElementById('inputFilmSize').value || '---'
-            };
+            if (oldStatus !== newStatus) {
+                if (oldStatus && oldStatus !== 'nodata' && startTime) {
+                    const elapsedSeconds = Math.floor((now - startTime) / 1000);
+                    if (elapsedSeconds > 0) {
+                        const dbField = `total_${oldStatus}`;
+                        updates[dbField] = (oldMachine[dbField] || 0) + elapsedSeconds;
 
-            update(ref(database, `machines/${selectedMachineId}`), machineUpdates).then(() => { closeModal(); });
-        }
+                        // Tạo khung log cơ sở
+                        temporaryUpdateObject = {
+                            machineId: selectedMachineId,
+                            status: oldStatus,
+                            durationSeconds: elapsedSeconds,
+                            date: new Date().toISOString().split('T')[0],
+                            timestamp: now,
+                            producedQty: 0
+                        };
+                    }
+                }
+                startTime = now;
+            }
 
-        function clearAllFields() {
-            if(confirm("Bạn có chắc chắn muốn xóa dữ liệu máy này?")) {
-                document.getElementById('inputCustomer').value = 'Chưa cập nhật dữ liệu';
-                document.getElementById('inputMO').value = ''; 
-                document.getElementById('inputStyle').value = 'Chưa cập nhật dữ liệu'; 
-                document.getElementById('inputFilmSize').value = '---'; 
-                document.getElementById('inputStatus').value = 'setup';
+            updates.status = newStatus;
+            updates.statusStartTime = startTime;
+            updates.downReason = (newStatus === 'down') ? document.getElementById('inputDownReason').value : '';
+            updates.customer = document.getElementById('inputCustomer').value;
+            updates.mo = document.getElementById('inputMO').value || '---';
+            updates.style = document.getElementById('inputStyle').value || '---';
+            updates.printDetail = document.getElementById('inputPrintDetail').value;
+            updates.filmSize = document.getElementById('inputFilmSize').value || '---';
+
+            // TÍNH NĂNG 3: NẾU VỪA KẾT THÚC TRẠNG THÁI CHẠY HÀNG -> BẬT KHUNG HỎI SẢN LƯỢNG ÁO
+            if (oldStatus === 'running' && newStatus !== 'running' && temporaryUpdateObject) {
+                document.getElementById('inputQtyPcs').value = 0;
+                document.getElementById('qtyOverlay').style.display = 'block';
+                // Giữ lệnh update máy chờ điền sản lượng xong sẽ chạy tiếp
+                window.pendingMachineUpdates = { refId: selectedMachineId, data: updates };
+            } else {
+                // Nếu không phải kết thúc chạy hàng, tiến hành lưu bình thường luôn
+                if (temporaryUpdateObject) {
+                    const newLogRef = push(logsRef);
+                    update(newLogRef, temporaryUpdateObject);
+                    temporaryUpdateObject = null;
+                }
+                update(ref(database, `machines/${selectedMachineId}`), updates).then(() => { closeModal(); });
             }
         }
+
+        window.submitQtyAndContinueSave = function() {
+            const qty = parseInt(document.getElementById('inputQtyPcs').value) || 0;
+            if (qty < 0) { alert("Sản lượng không hợp lệ!"); return; }
+
+            if (temporaryUpdateObject) {
+                temporaryUpdateObject.producedQty = qty; // Đính kèm sản lượng vào bản ghi nhật ký ngày
+                const newLogRef = push(logsRef);
+                update(newLogRef, temporaryUpdateObject).then(() => {
+                    temporaryUpdateObject = null;
+                });
+            }
+
+            const pending = window.pendingMachineUpdates;
+            if (pending) {
+                update(ref(database, `machines/${pending.refId}`), pending.data).then(() => {
+                    document.getElementById('qtyOverlay').style.display = 'none';
+                    window.pendingMachineUpdates = null;
+                    closeModal();
+                });
+            }
+        };
+
+        function clearAllFields() {
+            if (!selectedMachineId) return;
+            if(confirm("Bạn có chắc chắn muốn xóa dữ liệu máy này?")) {
+                const oldMachine = dbLocal[selectedMachineId];
+                let updates = {
+                    status: 'nodata', statusStartTime: Date.now(), downReason: '',
+                    customer: 'Chưa cập nhật dữ liệu', mo: '---', style: '---', printDetail: 'Thân trước', filmSize: '---'
+                };
+                update(ref(database, `machines/${selectedMachineId}`), updates).then(() => { closeModal(); });
+            }
+        }
+
+        document.getElementById('btnResetHistory').addEventListener('click', function() {
+            if (!selectedMachineId || currentAssignedMachine !== 'ADMIN') return;
+            if (confirm(`Xóa tổng giờ trọn đời của MÁY ${selectedMachineId}?`)) {
+                update(ref(database, `machines/${selectedMachineId}`), {
+                    total_running: 0, total_setup: 0, total_size: 0, total_ink: 0, total_down: 0, statusStartTime: Date.now()
+                });
+            }
+        });
 
         document.getElementById('btnSave').addEventListener('click', saveMachineData);
         document.getElementById('btnCancel').addEventListener('click', closeModal);
         document.getElementById('btnClear').addEventListener('click', clearAllFields);
+        
         setInterval(() => {
-            Object.keys(dbLocal).forEach(id => { const el = document.getElementById(`timer-${id}`); if (el) el.innerText = formatDuration(dbLocal[id].statusStartTime); });
+            Object.keys(dbLocal).forEach(id => { 
+                const machine = dbLocal[id];
+                const elTimer = document.getElementById(`timer-${id}`); 
+                if (elTimer) elTimer.innerText = formatDuration(machine.statusStartTime); 
+
+                const elHeader = document.getElementById(`header-${id}`);
+                if (elHeader) {
+                    const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
+                    elHeader.className = isOvertime ? 'machine-header bg-alert-overtime' : `machine-header bg-${machine.status || 'nodata'}`;
+                }
+            });
+            if(selectedMachineId && dbLocal[selectedMachineId]) {
+                const modalTimer = document.getElementById('modalTimerDisplay');
+                if(modalTimer) modalTimer.innerText = `Thời gian: ${formatDuration(dbLocal[selectedMachineId].statusStartTime)}`;
+            }
         }, 1000);
     </script>
 </body>
