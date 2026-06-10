@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống QUẢN LÝ TRẠNG THÁI MÁY IN</title>
+    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v17.6)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -67,6 +67,11 @@
         .bg-down { background-color: var(--status-down); color: #fff; }
         .bg-nodata { background-color: var(--status-nodata); color: #fff; }
 
+        @media (max-width: 1023px) {
+            .stats-bar { grid-template-columns: repeat(3, 1fr); }
+            .stat-item:first-child, .stat-item:last-child { grid-column: span 1; }
+        }
+
         @keyframes pulse-warning {
             0% { background-color: #ef4444; color: #fff; }
             50% { background-color: #f59e0b; color: #0f172a; }
@@ -88,7 +93,7 @@
             .section-title { margin: 6px 0; height: 2vh; font-size: 12px; }
             
             .zone-carousel { height: 27vh; margin-bottom: 4px; } 
-            .zone-oval { height: 51vh; }     
+            .zone-oval { height: 51vh; }       
             
             .machine-grid { gap: 12px; } 
             #carousel-container { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(2, 1fr); }
@@ -103,7 +108,7 @@
         /* MODALS */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 1000; padding: 10px; overflow-y: auto; }
         .modal-box { position: relative; margin: 2vh auto; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; width: 100%; max-width: 440px; color: #0f172a; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .modal-box h3 { font-size: 14px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; }
+        .modal-box h3 { font-size: 14px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; padding-right: 110px; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; font-size: 11px; color: #475569; margin-bottom: 4px; font-weight: 600; }
         .form-group input, .form-group select { width: 100%; padding: 8px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; color: #0f172a; }
@@ -123,7 +128,6 @@
         .history-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 11px; }
         .history-item { background: #fff; border: 1px solid #e2e8f0; padding: 6px; border-radius: 4px; display: flex; justify-content: space-between; }
         
-        /* PHẦN TIMELINE LỊCH SỬ MỚI */
         .timeline-container { max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; border: 1px solid #e2e8f0; padding: 6px; background: #fff; border-radius: 4px; }
         .timeline-log-item { display: flex; justify-content: space-between; font-size: 11px; padding: 4px; border-bottom: 1px solid #f1f5f9; }
         .timeline-log-item:last-child { border-bottom: none; }
@@ -134,7 +138,19 @@
         .btn-clear { background-color: #fee2e2; color: #dc2626; }
         .btn-cancel { background-color: #e2e8f0; color: #475569; }
         .btn-save { background-color: #2563eb; color: white; }
-        .modal-current-timer { font-size: 12px; color: #ef4444; font-weight: bold; margin-bottom: 10px; text-align: center; background: #fef2f2; padding: 6px; border-radius: 4px; }
+        .modal-current-timer { 
+            position: absolute; 
+            top: 12px;         
+            right: 16px;        
+            font-size: 12px; 
+            color: #ef4444; 
+            font-weight: bold; 
+            background: #fef2f2; 
+            padding: 4px 8px; 
+            border-radius: 4px;
+            border: 1px solid #fca5a5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
 
         #loginModalBox { max-width: 340px; margin: 15vh auto; }
         .login-error-msg { display: none; font-size: 11px; color: #ef4444; font-weight: 600; margin-bottom: 8px; text-align: center; background: #fef2f2; padding: 6px; border-radius: 4px; border: 1px solid #fee2e2; }
@@ -144,9 +160,10 @@
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v17.0)</h1>
+            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v17.6)</h1>
             <div class="auth-zone">
                 <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo Năng Suất & OEE</button>
+                <span class="user-status" id="netStatus" style="background: #e2e8f0; color: #475569;">⚡ Đang kết nối...</span>
                 <span class="user-status" id="txtUser">Chế độ: Xem dữ liệu</span>
                 <button class="btn-auth" id="btnLoginToggle" onclick="handleAuthAction()">Đăng nhập</button>
             </div>
@@ -154,11 +171,11 @@
     </header>
 
     <div class="stats-bar">
-        <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">Tổng máy:</div><div class="stat-val" id="total-machines">28</div></div>
-        <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">🟢 Chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
-        <div class="stat-item" onclick="setFilter('setup', this)"><div class="stat-lbl">🟡 Thay đơn:</div><div class="stat-val text-setup" id="count-setup">0</div></div>
-        <div class="stat-item" onclick="setFilter('size', this)"><div class="stat-lbl">🟠 Thay size:</div><div class="stat-val text-size" id="count-size">0</div></div>
-        <div class="stat-item" onclick="setFilter('down', this)"><div class="stat-lbl">🔴 Sự cố/Dừng:</div><div class="stat-val text-down" id="count-down">0</div></div>
+        <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">Tổng máy:</div><div class="stat-val" id="total-machines">0</div></div>
+        <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">🟢 Đang chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
+        <div class="stat-item" onclick="setFilter('setup', this)"><div class="stat-lbl">🟡 Đang thay đơn:</div><div class="stat-val text-setup" id="count-setup">0</div></div>
+        <div class="stat-item" onclick="setFilter('size', this)"><div class="stat-lbl">🟠 Đang thay size:</div><div class="stat-val text-size" id="count-size">0</div></div>
+        <div class="stat-item" onclick="setFilter('down', this)"><div class="stat-lbl">🔴 Máy dừng:</div><div class="stat-val text-down" id="count-down">0</div></div>
     </div>
 
     <div class="section-title">KHU MÁY TRÒN CAROUSEL</div>
@@ -211,10 +228,10 @@
                     <thead>
                         <tr>
                             <th>Mã Máy</th>
-                            <th>🟢 Chạy Hàng</th>
-                            <th>🟡 Thay Đơn</th>
-                            <th>🟠 Thay Size</th>
-                            <th>🔴 Dừng Máy</th>
+                            <th>🟢 Đang chạy hàng</th>
+                            <th>🟡 Đang thay đơn</th>
+                            <th>🟠 Đang thay size</th>
+                            <th>🔴 Máy dừng</th>
                             <th>🎯 Hiệu Suất OEE</th>
                         </tr>
                     </thead>
@@ -242,11 +259,12 @@
             
             <div class="form-group"><label>TRẠNG THÁI MÁY</label>
                 <select id="inputStatus" onchange="toggleDowntimeReasonField()">
-                    <option value="nodata">⚪ Chưa cập nhật dữ liệu (No Data)</option>
-                    <option value="running">🟢 Đang chạy hàng (Production)</option>
-                    <option value="setup">🟡 Đang thay đơn / Lên khung (Setup)</option>
-                    <option value="size">🟠 Đang thay size / Chỉnh gá (Size Change)</option>
-                    <option value="down">🔴 Máy dừng / Gặp sự cố (Downtime)</option>
+                    
+                    <option value="running">🟢 Đang chạy hàng</option>
+                    <option value="setup">🟡 Đang thay đơn</option>
+                    <option value="size">🟠 Đang thay size</option>
+                    <option value="down">🔴 Máy dừng</option>
+                    <option value="nodata">⚪ Chưa cập nhật dữ liệu</option>
                 </select>
             </div>
 
@@ -261,20 +279,19 @@
 
             <div class="history-section">
                 <div class="history-title">⏱️ LỊCH SỬ TRẠNG THÁI GẦN ĐÂY</div>
-                <div class="timeline-container" id="timelineLogList">
-                    </div>
+                <div class="timeline-container" id="timelineLogList"></div>
             </div>
 
             <div class="history-section">
                 <div class="history-title">
                     <span>📊 TỔNG THỜI GIAN TÍCH LŨY TRỌN ĐỜI</span>
-                    <span style="color: #ef4444; display:none; cursor: pointer; text-decoration: underline;" id="btnResetHistory">Reset giờ</span>
+                    <span style="color: #ef4444; display:block; cursor: pointer; text-decoration: underline;" id="btnResetHistory">Reset giờ</span>
                 </div>
                 <div class="history-grid">
                     <div class="history-item"><span>🟢 Chạy hàng:</span><b id="hist-running">0 Giờ 0P</b></div>
                     <div class="history-item"><span>🟡 Thay đơn:</span><b id="hist-setup">0 Giờ 0P</b></div>
                     <div class="history-item"><span>🟠 Thay size:</span><b id="hist-size">0 Giờ 0P</b></div>
-                    <div class="history-item" style="grid-column: span 2;"><span>🔴 Sự cố / Dừng máy:</span><b id="hist-down">0 Giờ 0P</b></div>
+                    <div class="history-item" style="grid-column: span 2;"><span>🔴 Máy dừng:</span><b id="hist-down">0 Giờ 0P</b></div>
                 </div>
             </div>
             
@@ -319,16 +336,27 @@
             { start: 2 * 60,        end: 2 * 60 + 45 },        
         ];
 
+        const connectedRef = ref(database, ".info/connected");
+        onValue(connectedRef, (snapshot) => {
+            const netStatusEl = document.getElementById('netStatus');
+            if (snapshot.val() === true) {
+                netStatusEl.innerText = "🟢 Trực tuyến";
+                netStatusEl.style.background = "#dcfce7";
+                netStatusEl.style.color = "#15803d";
+            } else {
+                netStatusEl.innerText = "🔴 Ngoại tuyến (Tự đồng bộ sau)";
+                netStatusEl.style.background = "#fee2e2";
+                netStatusEl.style.color = "#dc2626";
+            }
+        });
+
         function getNetDurationSeconds(startTimeMs, endTimeMs) {
             if (!startTimeMs || !endTimeMs || endTimeMs <= startTimeMs) return 0;
-            
             let totalSeconds = Math.floor((endTimeMs - startTimeMs) / 1000);
             let totalBreakSeconds = 0;
 
             let currentMinuteTime = new Date(startTimeMs);
-            currentMinuteTime.setSeconds(0);
-            currentMinuteTime.setMilliseconds(0);
-
+            currentMinuteTime.setSeconds(0); currentMinuteTime.setMilliseconds(0);
             const endCompare = new Date(endTimeMs);
 
             while (currentMinuteTime.getTime() < endCompare.getTime()) {
@@ -344,7 +372,6 @@
                 }
                 currentMinuteTime.setMinutes(currentMinuteTime.getMinutes() + 1);
             }
-
             let netSeconds = totalSeconds - totalBreakSeconds;
             return netSeconds < 0 ? 0 : netSeconds;
         }
@@ -352,9 +379,7 @@
         function getProductionDate(timestamp = Date.now()) {
             const d = new Date(timestamp);
             const hours = d.getHours();
-            if (hours < 6) {
-                d.setDate(d.getDate() - 1);
-            }
+            if (hours < 6) { d.setDate(d.getDate() - 1); }
             return d.toISOString().split('T')[0];
         }
 
@@ -419,7 +444,6 @@
                     errorLabel.style.display = 'block';
                     return;
                 }
-
                 currentAssignedMachine = dbMachineId;
             }
 
@@ -448,21 +472,16 @@
         window.toggleChart = function() {
             const table = document.getElementById('tableWrapper');
             const chart = document.getElementById('chartWrapper');
-            
             if (chart.style.display === 'none' || chart.style.display === '') {
-                table.style.display = 'none';
-                chart.style.display = 'block';
-                renderChart();
+                table.style.display = 'none'; chart.style.display = 'block'; renderChart();
             } else {
-                table.style.display = 'block';
-                chart.style.display = 'none';
+                table.style.display = 'block'; chart.style.display = 'none';
             }
         };
 
         function renderChart() {
             const ctx = document.getElementById('oeeChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
-
             const labels = lastReportCalculatedData.map(d => d.machine);
             const data = lastReportCalculatedData.map(d => parseInt(d.oee));
 
@@ -516,9 +535,7 @@
                 const r = reportData[mid];
                 const runningHours = r.running / 3600;
                 let oee = 0;
-                if (runningHours > 0) {
-                    oee = Math.round((runningHours / 21.75) * 100);
-                }
+                if (runningHours > 0) { oee = Math.round((runningHours / 21.75) * 100); }
 
                 const oeeClass = (oee < 60 && r.running > 0) ? 'oee-bad' : (oee >= 60 ? 'oee-good' : '');
                 const displayName = getDisplayMachineName(mid);
@@ -535,21 +552,18 @@
                 tbody.appendChild(tr);
 
                 lastReportCalculatedData.push({
-                    machine: `MAY ${displayName}`, running: convertSecondsToHoursText(r.running), setup: convertSecondsToHoursText(r.setup),
+                    machine: `MÁY ${displayName}`, running: convertSecondsToHoursText(r.running), setup: convertSecondsToHoursText(r.setup),
                     size: convertSecondsToHoursText(r.size), down: convertSecondsToHoursText(r.down), oee: oee + '%'
                 });
             });
 
-            if (document.getElementById('chartWrapper').style.display === 'block') {
-                renderChart();
-            }
+            if (document.getElementById('chartWrapper').style.display === 'block') { renderChart(); }
         };
 
         window.exportReportToCSV = function() {
             if (lastReportCalculatedData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
             let csvContent = "\uFEFF";
-            csvContent += "Ma May,Chay Hang,Thay Don,Thay Size,Dung May,Hieu Suat OEE\n";
-            
+            csvContent += "Ma May,Chay Hang,Thay Don,Thay Size,May Dung,Hieu Suat OEE\n";
             lastReportCalculatedData.forEach(row => {
                 csvContent += `"${row.machine}","${row.running}","${row.setup}","${row.size}","${row.down}","${row.oee}"\n`;
             });
@@ -559,213 +573,201 @@
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
             link.setAttribute("download", `Bao_Cao_Nang_Suat_${document.getElementById('reportFromDate').value}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         };
 
         window.setFilter = function(status, element) {
             currentFilterStatus = status;
             document.querySelectorAll('.stat-item').forEach(item => item.classList.remove('active-filter'));
-            element.classList.add('active-filter'); applyFilterToCards();
+            element.classList.add('active-filter');
+            applyFilter();
         };
 
-        function applyFilterToCards() {
-            Object.keys(dbLocal).forEach(id => {
-                const card = document.getElementById(`card-${id}`); if (!card) return;
-                if (currentFilterStatus === 'all' || dbLocal[id].status === currentFilterStatus) card.classList.remove('hidden-by-filter');
-                else card.classList.add('hidden-by-filter');
+        function applyFilter() {
+            document.querySelectorAll('.machine-card').forEach(card => {
+                const cardStatus = card.getAttribute('data-status') || 'nodata';
+                if (currentFilterStatus === 'all' || cardStatus === currentFilterStatus) {
+                    card.classList.remove('hidden-by-filter');
+                } else {
+                    card.classList.add('hidden-by-filter');
+                }
             });
         }
 
-        function formatDuration(startMs) {
-            if (!startMs) return "00:00:00";
-            const netSec = getNetDurationSeconds(startMs, Date.now());
-            const hrs = Math.floor(netSec / 3600); const mins = Math.floor((netSec % 3600) / 60);
-            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(netSec % 60).padStart(2, '0')}`;
+        function convertSecondsToHoursText(seconds) {
+            if (!seconds || seconds <= 0) return "0 Giờ 0P";
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return `${h} Giờ ${m}P`;
         }
 
-        function convertSecondsToHoursText(totalSeconds) {
-            if (!totalSeconds || isNaN(totalSeconds)) return "0h 0m";
-            const hrs = Math.floor(totalSeconds / 3600); const mins = Math.floor((totalSeconds % 3600) / 60);
-            return `${hrs}h ${mins}m`;
+        function formatDurationText(startTimeMs) {
+            if (!startTimeMs) return "00:00:00";
+            const diff = Math.floor((Date.now() - startTimeMs) / 1000);
+            if(diff < 0) return "00:00:00";
+            const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+            const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+            const s = String(diff % 60).padStart(2, '0');
+            return `${h}:${m}:${s}`;
         }
 
-        // CẬP NHẬT: SỬA THỜI GIAN NHẤP NHÁY THÀNH 3600 giây (60 PHÚT) THEO YÊU CẦU
-        function checkOvertimeAlert(status, startMs) {
-            if (!startMs) return false;
-            return ['setup', 'size', 'down'].includes(status) && getNetDurationSeconds(startMs, Date.now()) >= 3600; 
+        function checkOvertimeAlert(status, startTimeMs) {
+            if (!startTimeMs || ['running', 'nodata'].includes(status)) return false;
+            const diffSeconds = Math.floor((Date.now() - startTimeMs) / 1000);
+            return diffSeconds > 3600; 
         }
+
+        // CHỈNH SỬA: Bộ nhãn hiển thị Map chuẩn hóa Tiếng Việt theo yêu cầu
+        const statusLabelMap = {
+            'running': '🟢 ĐANG CHẠY HÀNG', 
+            'setup': '🟡 ĐANG THAY ĐƠN',
+            'size': '🟠 ĐANG THAY SIZE', 
+            'down': '🔴 MÁY DỪNG', 
+            'nodata': '⚪ CHƯA CẬP NHẬT'
+        };
 
         onValue(machinesRef, (snapshot) => {
-            const data = snapshot.val(); if (!data) return;
-            dbLocal = data; renderDashboard(data);
-            if (selectedMachineId && data[selectedMachineId]) {
-                updateHistoryDisplayInModal(data[selectedMachineId]);
-            }
+            dbLocal = snapshot.val() || {};
+            renderMachines();
         });
 
-        // CẬP NHẬT: KHI LOGS THAY ĐỔI THÌ TỰ ĐỘNG VẼ LẠI TIMELINE NẾU ĐANG MỞ MODAL
-        onValue(logsRef, (snapshot) => { 
-            dbLogsLocal = snapshot.val() || {}; 
-            if (selectedMachineId) {
-                renderRecentTimelineLogs(selectedMachineId);
-            }
+        onValue(logsRef, (snapshot) => {
+            dbLogsLocal = snapshot.val() || {};
         });
 
-        // CẬP NHẬT: SỬA CHỮ THÀNH (QUÁ 60P) TRÊN THẺ MÁY KHI CÓ CẢNH BÁO
-        function renderDashboard(data) {
+        function renderMachines() {
             const carouselContainer = document.getElementById('carousel-container');
             const ovalContainer = document.getElementById('oval-container');
-            carouselContainer.innerHTML = ""; ovalContainer.innerHTML = "";
+            carouselContainer.innerHTML = ''; ovalContainer.innerHTML = '';
+
             let counts = { running: 0, setup: 0, size: 0, down: 0, nodata: 0 };
+            const sortedKeys = Object.keys(dbLocal).sort();
 
-            Object.keys(data).sort().forEach(id => {
-                const machine = data[id]; if (counts[machine.status] !== undefined) counts[machine.status]++;
-                
-                let statusLabel = "Đang chờ";
-                if (machine.status === 'running') statusLabel = "🟢 Chạy hàng";
-                else if (machine.status === 'setup') statusLabel = "🟡 Thay đơn";
-                else if (machine.status === 'size') statusLabel = "🟠 Thay size";
-                else if (machine.status === 'down') statusLabel = `🔴 Dừng: ${machine.downReason || 'Sự cố'}`;
-                else if (machine.status === 'nodata') statusLabel = "⚪ Chờ dữ liệu";
-
-                const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
-                const headerClass = isOvertime ? 'bg-alert-overtime' : `bg-${machine.status || 'nodata'}`;
+            sortedKeys.forEach(id => {
+                const machine = dbLocal[id];
+                const status = machine.status || 'nodata';
                 const displayName = getDisplayMachineName(id);
+                const isOvertime = checkOvertimeAlert(status, machine.statusStartTime);
+
+                if (counts[status] !== undefined) counts[status]++;
+
+                const headerClass = isOvertime ? 'bg-alert-overtime' : `bg-${status}`;
+                const labelText = statusLabelMap[status] || '⚪ CHƯA CẬP NHẬT';
 
                 const card = document.createElement('div');
-                card.className = 'machine-card'; card.id = `card-${id}`;
-                card.addEventListener('click', () => openModal(id));
+                card.className = 'machine-card';
+                card.id = `card-${id}`;
+                card.setAttribute('data-status', status);
+                card.onclick = () => window.openModal(id);
+
                 card.innerHTML = `
                     <div class="machine-header ${headerClass}" id="header-${id}">
                         <span>${isOvertime ? '⚠️ ' : ''}MÁY ${displayName}</span>
-                        <span class="machine-timer" id="timer-${id}">${formatDuration(machine.statusStartTime)}</span>
+                        <span class="machine-timer" id="timer-${id}">${formatDurationText(machine.statusStartTime)}</span>
                     </div>
                     <div class="machine-body">
-                        <div class="status-display-text" style="color:var(--status-${machine.status || 'nodata'}); text-align:center;">
-                            ${statusLabel} ${isOvertime ? '(QUÁ 60P)' : ''}
+                        <div class="status-display-text" style="color:var(--status-${status});">
+                            ${labelText} ${isOvertime ? '<br><span style="color:red; font-weight:bold;">(QUÁ 1 GIỜ!)</span>' : ''}
                         </div>
-                    </div>`;
-                if (id.startsWith('C')) carouselContainer.appendChild(card); else ovalContainer.appendChild(card);
+                    </div>
+                `;
+
+                if (id.startsWith('C')) carouselContainer.appendChild(card);
+                else ovalContainer.appendChild(card);
             });
 
-            document.getElementById('total-machines').innerText = Object.keys(data).length;
+            document.getElementById('total-machines').innerText = sortedKeys.length;
             document.getElementById('count-running').innerText = counts.running;
             document.getElementById('count-setup').innerText = counts.setup;
             document.getElementById('count-size').innerText = counts.size;
             document.getElementById('count-down').innerText = counts.down;
-            applyFilterToCards();
+            applyFilter();
         }
 
-        function openModal(id) {
-            if (!currentAssignedMachine) { alert("Bạn chưa đăng nhập!"); return; }
+        window.openModal = function(id) {
+            if (!currentAssignedMachine) { alert("Vui lòng đăng nhập để thực hiện thao tác này!"); return; }
             if (currentAssignedMachine !== 'ADMIN' && currentAssignedMachine !== id) {
-                alert(`Tài khoản cố định cho MÁY ${getDisplayMachineName(currentAssignedMachine)}. Không thể sửa MÁY ${getDisplayMachineName(id)}!`); return;
+                alert(`Bạn chỉ có quyền chỉnh sửa dữ liệu cho MÁY ${getDisplayMachineName(currentAssignedMachine)}!`); return;
             }
 
-            selectedMachineId = id; const m = dbLocal[id];
-            document.getElementById('modalTitle').innerText = `CẬP NHẬT: MÁY ${getDisplayMachineName(id)}`;
+            selectedMachineId = id;
+            const m = dbLocal[id] || {};
+            
+            document.getElementById('modalTitle').innerText = `CẬP NHẬT THÔNG TIN: MÁY ${getDisplayMachineName(id)}`;
             document.getElementById('inputStatus').value = m.status || 'nodata';
+            document.getElementById('inputDownReason').value = m.downReason || 'Máy Hỏng';
+            window.toggleDowntimeReasonField();
+
+            document.getElementById('hist-running').innerText = convertSecondsToHoursText(m.total_running);
+            document.getElementById('hist-setup').innerText = convertSecondsToHoursText(m.total_setup);
+            document.getElementById('hist-size').innerText = convertSecondsToHoursText(m.total_size);
+            document.getElementById('hist-down').innerText = convertSecondsToHoursText(m.total_down);
+
+            const timeline = document.getElementById('timelineLogList');
+            timeline.innerHTML = "";
+            let logArray = [];
             
-            const validReasons = ["Máy Hỏng", "Hỏng Khung", "Khác"];
-            document.getElementById('inputDownReason').value = validReasons.includes(m.downReason) ? m.downReason : 'Máy Hỏng';
-            
-            toggleDowntimeReasonField(); 
-            updateHistoryDisplayInModal(m);
-            renderRecentTimelineLogs(id); // Gọi vẽ dòng lịch sử khoảng thời gian
-
-            document.getElementById('btnResetHistory').style.display = currentAssignedMachine === 'ADMIN' ? 'inline' : 'none';
-            document.getElementById('modalOverlay').style.display = 'block';
-        }
-
-        // CẬP NHẬT: HÀM TRÍCH XUẤT VÀ HIỂN THỊ LOGS LỊCH SỬ KHOẢNG THỜI GIAN GẦN ĐÂY CỦA TỪNG MÁY
-        function renderRecentTimelineLogs(machineId) {
-            const container = document.getElementById('timelineLogList');
-            if (!container) return;
-            container.innerHTML = "";
-
-            let listLogs = [];
             if (dbLogsLocal) {
-                Object.keys(dbLogsLocal).forEach(key => {
-                    const l = dbLogsLocal[key];
-                    if (l.machineId === machineId) {
-                        listLogs.push(l);
+                Object.keys(dbLogsLocal).forEach(logId => {
+                    const l = dbLogsLocal[logId];
+                    if (l.machineId === id) {
+                        logArray.push(l);
                     }
                 });
             }
-
-            // Sắp xếp lịch sử mới nhất lên đầu danh sách
-            listLogs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-            // Chỉ hiển thị tối đa 12 mốc lịch sử gần nhất để tránh lag giao diện
-            const viewLogs = listLogs.slice(0, 12);
-
-            if (viewLogs.length === 0) {
-                container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-size:11px; padding:10px;">Chưa ghi nhận khoảng lịch sử nào...</div>`;
-                return;
+            logArray.sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (logArray.length === 0) {
+                timeline.innerHTML = '<div style="font-size:11px; color:#64748b; padding:10px; text-align:center;">Chưa ghi nhận ca nào...</div>';
+            } else {
+                logArray.slice(0, 10).forEach(l => {
+                    const timeStr = new Date(l.timestamp).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                    timeline.innerHTML += `
+                        <div class="timeline-log-item">
+                            <span>📅 ${l.productionDate || l.date} (${timeStr})</span>
+                            <span style="color:var(--status-${l.status}); font-weight:bold;">${statusLabelMap[l.status]?.replace('🟢 ', '')?.replace('🟡 ', '')?.replace('🟠 ', '')?.replace('🔴 ', '') || l.status}</span>
+                            <span>⏱️ ${convertSecondsToHoursText(l.durationSeconds)}</span>
+                        </div>
+                    `;
+                });
             }
 
-            viewLogs.forEach(log => {
-                let statusName = "Chờ";
-                let statusColor = "#64748b";
-                if (log.status === 'running') { statusName = "🟢 Chạy hàng"; statusColor = "var(--status-running)"; }
-                else if (log.status === 'setup') { statusName = "🟡 Thay đơn"; statusColor = "#b45309"; }
-                else if (log.status === 'size') { statusName = "🟠 Thay size"; statusColor = "var(--status-size)"; }
-                else if (log.status === 'down') { statusName = "🔴 Dừng máy"; statusColor = "var(--status-down)"; }
+            document.getElementById('btnResetHistory').style.display = (currentAssignedMachine === 'ADMIN') ? 'inline' : 'none';
+            document.getElementById('modalOverlay').style.display = 'block';
+        };
 
-                const timeObj = new Date(log.timestamp);
-                const timeString = timeObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                const dateString = log.productionDate || log.date || "";
+        window.closeModal = function() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            selectedMachineId = null;
+        };
 
-                const item = document.createElement('div');
-                item.className = 'timeline-log-item';
-                item.innerHTML = `
-                    <span><b>${timeString}</b> <span style="color:#64748b;">(${dateString})</span></span>
-                    <span style="color:${statusColor}; font-weight:700;">${statusName}</span>
-                    <span style="color:#334155;">Khoảng: <b>${convertSecondsToHoursText(log.durationSeconds)}</b></span>
-                `;
-                container.appendChild(item);
-            });
-        }
+        document.getElementById('btnCancel').addEventListener('click', window.closeModal);
 
-        function updateHistoryDisplayInModal(machineData) {
-            document.getElementById('hist-running').innerText = convertSecondsToHoursText(machineData.total_running);
-            document.getElementById('hist-setup').innerText = convertSecondsToHoursText(machineData.total_setup);
-            document.getElementById('hist-size').innerText = convertSecondsToHoursText(machineData.total_size);
-            document.getElementById('hist-down').innerText = convertSecondsToHoursText(machineData.total_down);
-        }
-
-        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; selectedMachineId = null; }
-
-        function saveMachineData() {
+        document.getElementById('btnSave').addEventListener('click', function() {
             if (!selectedMachineId) return;
-            const oldMachine = dbLocal[selectedMachineId];
-            const oldStatus = oldMachine.status;
+            const oldMachine = dbLocal[selectedMachineId] || {};
+            const oldStatus = oldMachine.status || 'nodata';
             const newStatus = document.getElementById('inputStatus').value;
             
-            let startTime = oldMachine.statusStartTime;
+            let startTime = oldMachine.statusStartTime || Date.now();
             let updates = {};
             const now = Date.now();
 
             if (oldStatus !== newStatus) {
-                if (oldStatus && oldStatus !== 'nodata' && startTime) {
+                if (oldStatus !== 'nodata') {
                     const elapsedSeconds = getNetDurationSeconds(startTime, now);
                     if (elapsedSeconds > 0) {
-                        const dbField = `total_${oldStatus}`;
-                        updates[dbField] = (oldMachine[dbField] || 0) + elapsedSeconds;
+                        const field = `total_${oldStatus}`;
+                        updates[field] = (oldMachine[field] || 0) + elapsedSeconds;
 
-                        const temporaryUpdateObject = {
+                        push(logsRef, {
                             machineId: selectedMachineId,
                             status: oldStatus,
                             durationSeconds: elapsedSeconds,
                             date: new Date().toISOString().split('T')[0],
                             productionDate: getProductionDate(now),
-                            timestamp: now,
-                            producedQty: 0
-                        };
-                        const newLogRef = push(logsRef);
-                        update(newLogRef, temporaryUpdateObject);
+                            timestamp: now
+                        });
                     }
                 }
                 startTime = now;
@@ -775,49 +777,48 @@
             updates.statusStartTime = startTime;
             updates.downReason = (newStatus === 'down') ? document.getElementById('inputDownReason').value : '';
 
-            update(ref(database, `machines/${selectedMachineId}`), updates).then(() => { 
-                closeModal(); 
+            update(ref(database, `machines/${selectedMachineId}`), updates).then(() => {
+                window.closeModal();
             });
-        }
+        });
 
-        function clearAllFields() {
+        document.getElementById('btnClear').addEventListener('click', function() {
             if (!selectedMachineId) return;
-            if(confirm(`Xóa trắng dữ liệu máy này?`)) {
-                let updates = {
-                    status: 'nodata', statusStartTime: Date.now(), downReason: ''
-                };
-                update(ref(database, `machines/${selectedMachineId}`), updates).then(() => { closeModal(); });
-            }
-        }
-
-        document.getElementById('btnResetHistory').addEventListener('click', function() {
-            if (!selectedMachineId || currentAssignedMachine !== 'ADMIN') return;
-            if (confirm(`Xóa tổng giờ trọn đời MÁY ${getDisplayMachineName(selectedMachineId)}?`)) {
+            if (confirm("Bạn có chắc chắn muốn xóa trạng thái hiện tại và đưa máy về trạng thái chưa cập nhật?")) {
                 update(ref(database, `machines/${selectedMachineId}`), {
-                    total_running: 0, total_setup: 0, total_size: 0, total_down: 0, statusStartTime: Date.now()
-                });
+                    status: 'nodata',
+                    statusStartTime: Date.now(),
+                    downReason: ''
+                }).then(() => { window.closeModal(); });
             }
         });
 
-        document.getElementById('btnSave').addEventListener('click', saveMachineData);
-        document.getElementById('btnCancel').addEventListener('click', closeModal);
-        document.getElementById('btnClear').addEventListener('click', clearAllFields);
-        
-        setInterval(() => {
-            Object.keys(dbLocal).forEach(id => { 
-                const machine = dbLocal[id];
-                const elTimer = document.getElementById(`timer-${id}`); 
-                if (elTimer) elTimer.innerText = formatDuration(machine.statusStartTime); 
+        document.getElementById('btnResetHistory').addEventListener('click', function() {
+            if (!selectedMachineId || currentAssignedMachine !== 'ADMIN') return;
+            if (confirm("⚠️ Chứ ý: Hành động này sẽ RESET hoàn toàn thời gian tích lũy trọn đời của máy về 0h! Bạn vẫn muốn tiếp tục?")) {
+                update(ref(database, `machines/${selectedMachineId}`), {
+                    total_running: 0, total_setup: 0, total_size: 0, total_down: 0,
+                    statusStartTime: Date.now()
+                }).then(() => { window.closeModal(); });
+            }
+        });
 
-                const elHeader = document.getElementById(`header-${id}`);
-                if (elHeader) {
+        setInterval(() => {
+            Object.keys(dbLocal).forEach(id => {
+                const machine = dbLocal[id];
+                const timerEl = document.getElementById(`timer-${id}`);
+                if (timerEl) timerEl.innerText = formatDurationText(machine.statusStartTime);
+
+                const headerEl = document.getElementById(`header-${id}`);
+                if (headerEl) {
                     const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
-                    elHeader.className = isOvertime ? 'machine-header bg-alert-overtime' : `bg-${machine.status || 'nodata'}`;
+                    headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `machine-header bg-${machine.status || 'nodata'}`;
                 }
             });
-            if(selectedMachineId && dbLocal[selectedMachineId]) {
+
+            if (selectedMachineId && dbLocal[selectedMachineId]) {
                 const modalTimer = document.getElementById('modalTimerDisplay');
-                if(modalTimer) modalTimer.innerText = `Thời gian: ${formatDuration(dbLocal[selectedMachineId].statusStartTime)}`;
+                if (modalTimer) modalTimer.innerText = `Thời gian: ${formatDurationText(dbLocal[selectedMachineId].statusStartTime)}`;
             }
         }, 1000);
     </script>
