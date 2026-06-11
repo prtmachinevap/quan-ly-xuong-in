@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v17.9)</title>
+    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v19.5)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -49,7 +49,6 @@
 
         .section-title { font-size: 13px; font-weight: 700; margin: 16px 0 10px 0; padding-left: 8px; border-left: 4px solid #2563eb; color: #2563eb; }
         
-        /* GRID */
         .machine-grid { display: grid; gap: 12px; width: 100%; } 
         #carousel-container { grid-template-columns: repeat(2, 1fr); }
         #oval-container { grid-template-columns: repeat(2, 1fr); }
@@ -82,7 +81,6 @@
         .machine-body { padding: 14px 10px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #ffffff; min-height: 55px; }
         .status-display-text { font-size: 13px; font-weight: 700; text-align: center; width: 100%; }
 
-        /* MÀN HÌNH WEB */
         @media (min-width: 1024px) {
             body { padding: 8px 16px; height: 100vh; width: 100vw; overflow: hidden; }
             header { flex-direction: row; justify-content: space-between; align-items: center; height: 4vh; padding-bottom: 0; }
@@ -105,7 +103,6 @@
             .status-display-text { font-size: 12px; }
         }
 
-        /* MODALS */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); z-index: 1000; padding: 10px; overflow-y: auto; }
         .modal-box { position: relative; margin: 2vh auto; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; width: 100%; max-width: 440px; color: #0f172a; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .modal-box h3 { font-size: 14px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; padding-right: 110px; }
@@ -113,15 +110,22 @@
         .form-group label { display: block; font-size: 11px; color: #475569; margin-bottom: 4px; font-weight: 600; }
         .form-group input, .form-group select { width: 100%; padding: 8px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; color: #0f172a; }
         
-        #reportModalBox { max-width: 750px; width: 95vw; margin: 4vh auto; }
+        #reportModalBox { max-width: 850px; width: 95vw; margin: 4vh auto; }
         .filter-report-bar { display: flex; gap: 12px; align-items: flex-end; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 6px; margin-bottom: 12px; flex-wrap: wrap; }
         .report-table-wrapper { overflow-x: auto; max-height: 50vh; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 10px; }
         .report-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
         .report-table th { background: #f1f5f9; position: sticky; top: 0; padding: 10px; font-weight: 700; border-bottom: 2px solid #cbd5e1; text-align: center; white-space: nowrap; color: #0f172a; }
-        .report-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center; white-space: nowrap; }
+        .report-table td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center; white-space: nowrap; vertical-align: middle; }
         .report-table tr:hover { background: #f8fafc; }
-        .oee-bad { background: #fee2e2 !important; color: #dc2626; font-weight: 700; }
-        .oee-good { background: #dcfce7 !important; color: #15803d; font-weight: 700; }
+        .oee-bad { background: #fee2e2 !important; color: #dc2626; font-weight: 700; font-size: 14px; }
+        .oee-good { background: #dcfce7 !important; color: #15803d; font-weight: 700; font-size: 14px; }
+        .tr-total { background: #eff6ff !important; font-weight: 700; border-top: 2px solid #3b82f6; color: #1e3a8a; }
+        
+        .sub-pct { font-size: 11px; font-weight: 600; display: block; margin-top: 2px; }
+        .pct-running { color: #10b981; }
+        .pct-setup { color: #d97706; }
+        .pct-size { color: #ea580c; }
+        .pct-down { color: #ef4444; }
 
         .history-section { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 10px; margin: 8px 0; }
         .history-title { font-size: 11px; font-weight: 700; color: #2563eb; margin-bottom: 8px; display: flex; justify-content: space-between; }
@@ -160,7 +164,7 @@
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v17.9)</h1>
+            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v19.5)</h1>
             <div class="auth-zone">
                 <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo Năng Suất & OEE</button>
                 <span class="user-status" id="netStatus" style="background: #e2e8f0; color: #475569;">⚡ Đang kết nối...</span>
@@ -170,7 +174,6 @@
         </div>
     </header>
 
-    <!-- ĐÃ ĐỔI ICON CƠ KHÍ THEO YÊU CẦU -->
     <div class="stats-bar">
         <div class="stat-item active-filter" onclick="setFilter('all', this)"><div class="stat-lbl">⚙️ Tổng máy:</div><div class="stat-val" id="total-machines">0</div></div>
         <div class="stat-item" onclick="setFilter('running', this)"><div class="stat-lbl">⚡ Chạy hàng:</div><div class="stat-val text-running" id="count-running">0</div></div>
@@ -208,7 +211,7 @@
 
     <div class="modal-overlay" id="reportOverlay">
         <div class="modal-box" id="reportModalBox">
-            <h3>📊 BÁO CÁO HIỆU SUẤT & BIỂU ĐỒ OEE THEO NGÀY (Ca 1: 6h - 18h | Ca 2: 18h - 6h hôm sau)</h3>
+            <h3>📊 BÁO CÁO HIỆU SUẤT & TỶ TRỌNG TRẠNG THÁI THEO KHOẢNG NGÀY</h3>
             
             <div class="filter-report-bar">
                 <div class="form-group" style="margin-bottom:0; flex: 1; min-width: 130px;">
@@ -229,11 +232,11 @@
                     <thead>
                         <tr>
                             <th>Mã Máy</th>
-                            <th>⚡ Đang chạy hàng</th>
-                            <th>🔧 Đang thay đơn</th>
-                            <th>📏 Đang thay size</th>
+                            <th>⚡ Chạy hàng</th>
+                            <th>🔧 Thay đơn</th>
+                            <th>📏 Thay size</th>
                             <th>🚨 Máy dừng</th>
-                            <th>🎯 Hiệu Suất OEE</th>
+                            <th>🎯 OEE</th>
                         </tr>
                     </thead>
                     <tbody id="reportTableBody">
@@ -247,7 +250,7 @@
             </div>
 
             <div class="modal-buttons">
-                <span style="font-size:10px; color:#64748b;">* Công thức: OEE = (Giờ Chạy Hàng / 21.75) * 100%. Tự động trừ giờ cơm xưởng.</span>
+                <span style="font-size:10px; color:#64748b;" id="txtReportNote">* Công thức % Tỷ trọng = (Tổng giờ / (Số ngày làm việc x 21.75 Giờ x Số máy hoạt động)) x 100%. Tự động trừ Chủ Nhật và giờ ăn.</span>
                 <button class="btn btn-cancel" onclick="closeReportModal()">Đóng</button>
             </div>
         </div>
@@ -380,7 +383,26 @@
             const d = new Date(timestamp);
             const hours = d.getHours();
             if (hours < 6) { d.setDate(d.getDate() - 1); }
-            return d.toISOString().split('T')[0];
+            
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function countWorkingDays(fromDateStr, toDateStr) {
+            let start = new Date(fromDateStr + "T00:00:00");
+            let end = new Date(toDateStr + "T00:00:00");
+            let workingDaysCount = 0;
+
+            while (start <= end) {
+                const dayOfWeek = start.getDay(); 
+                if (dayOfWeek !== 0) {
+                    workingDaysCount++;
+                }
+                start.setDate(start.getDate() + 1);
+            }
+            return workingDaysCount;
         }
 
         const currentProdDate = getProductionDate();
@@ -407,7 +429,7 @@
                     localStorage.removeItem('xuongin_machine'); currentAssignedMachine = null;
                     document.getElementById('txtUser').innerText = "Chế độ: Xem dữ liệu";
                     document.getElementById('btnLoginToggle').innerText = "Đăng nhập";
-                    renderMachines(); // CẬP NHẬT: Hiển thị lại tất cả máy khi đăng xuất
+                    renderMachines();
                 }
             } else {
                 document.getElementById('loginError').style.display = 'none';
@@ -452,7 +474,7 @@
             document.getElementById('txtUser').innerText = currentAssignedMachine === 'ADMIN' ? "Quyền: Quản Lý Tổng" : `Máy: MÁY ${getDisplayMachineName(currentAssignedMachine)}`;
             document.getElementById('btnLoginToggle').innerText = "Đăng xuất";
             window.closeLoginModal();
-            renderMachines(); // CẬP NHẬT: Thực hiện lọc giao diện chỉ hiển thị 1 máy ngay lập tức
+            renderMachines(); 
         };
 
         window.toggleDowntimeReasonField = function() {
@@ -484,8 +506,11 @@
         function renderChart() {
             const ctx = document.getElementById('oeeChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
-            const labels = lastReportCalculatedData.map(d => d.machine);
-            const data = lastReportCalculatedData.map(d => parseInt(d.oee));
+            
+            // Loại bỏ dòng TỔNG TOÀN XƯỞNG khỏi biểu đồ để tránh sai lệch cột
+            const filteredDataForChart = lastReportCalculatedData.filter(d => !d.machine.includes("TỔNG TOÀN XƯỞNG"));
+            const labels = filteredDataForChart.map(d => d.machine);
+            const data = filteredDataForChart.map(d => parseInt(d.oee));
 
             chartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -514,6 +539,8 @@
 
             if (!fromDate || !toDate) { alert("Vui lòng chọn ngày!"); return; }
 
+            const workingDays = countWorkingDays(fromDate, toDate);
+
             let reportData = {};
             Object.keys(dbLocal).sort().forEach(mid => {
                 reportData[mid] = { running: 0, setup: 0, size: 0, down: 0 };
@@ -533,31 +560,108 @@
 
             lastReportCalculatedData = [];
 
+            // Các biến phục vụ tính toán Tổng toàn xưởng
+            let sumRunning = 0, sumSetup = 0, sumSize = 0, sumDown = 0;
+            let activeMachinesCount = 0;
+
             Object.keys(reportData).sort().forEach(mid => {
                 const r = reportData[mid];
-                const runningHours = r.running / 3600;
-                let oee = 0;
-                if (runningHours > 0) { oee = Math.round((runningHours / 21.75) * 100); }
+                const totalMachineTime = r.running + r.setup + r.size + r.down;
 
-                const oeeClass = (oee < 60 && r.running > 0) ? 'oee-bad' : (oee >= 60 ? 'oee-good' : '');
+                if (totalMachineTime > 0) {
+                    sumRunning += r.running;
+                    sumSetup += r.setup;
+                    sumSize += r.size;
+                    sumDown += r.down;
+                    activeMachinesCount++;
+                }
+
+                // Tính % cho từng máy đơn lẻ
+                const machineCapacitySeconds = workingDays * 21.75 * 3600;
+                let pctRunning = 0, pctSetup = 0, pctSize = 0, pctDown = 0;
+                
+                if (machineCapacitySeconds > 0) {
+                    pctRunning = Math.round((r.running / machineCapacitySeconds) * 100);
+                    pctSetup = Math.round((r.setup / machineCapacitySeconds) * 100);
+                    pctSize = Math.round((r.size / machineCapacitySeconds) * 100);
+                    pctDown = Math.round((r.down / machineCapacitySeconds) * 100);
+                }
+
+                const oeeClass = (pctRunning < 60 && r.running > 0) ? 'oee-bad' : (pctRunning >= 60 ? 'oee-good' : '');
                 const displayName = getDisplayMachineName(mid);
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="font-weight:700; background:#f1f5f9;">MÁY ${displayName}</td>
-                    <td>${convertSecondsToHoursText(r.running)}</td>
-                    <td>${convertSecondsToHoursText(r.setup)}</td>
-                    <td>${convertSecondsToHoursText(r.size)}</td>
-                    <td>${convertSecondsToHoursText(r.down)}</td>
-                    <td class="${oeeClass}">${oee}%</td>
+                    <td>${convertSecondsToHoursText(r.running)} <span class="sub-pct pct-running">(${pctRunning}%)</span></td>
+                    <td>${convertSecondsToHoursText(r.setup)} <span class="sub-pct pct-setup">(${pctSetup}%)</span></td>
+                    <td>${convertSecondsToHoursText(r.size)} <span class="sub-pct pct-size">(${pctSize}%)</span></td>
+                    <td>${convertSecondsToHoursText(r.down)} <span class="sub-pct pct-down">(${pctDown}%)</span></td>
+                    <td class="${oeeClass}">${pctRunning}%</td>
                 `;
                 tbody.appendChild(tr);
 
                 lastReportCalculatedData.push({
-                    machine: `MÁY ${displayName}`, running: convertSecondsToHoursText(r.running), setup: convertSecondsToHoursText(r.setup),
-                    size: convertSecondsToHoursText(r.size), down: convertSecondsToHoursText(r.down), oee: oee + '%'
+                    machine: `MÁY ${displayName}`, 
+                    running: `${convertSecondsToHoursText(r.running)} (${pctRunning}%)`, 
+                    setup: `${convertSecondsToHoursText(r.setup)} (${pctSetup}%)`,
+                    size: `${convertSecondsToHoursText(r.size)} (${pctSize}%)`, 
+                    down: `${convertSecondsToHoursText(r.down)} (${pctDown}%)`, 
+                    oee: pctRunning + '%'
                 });
             });
+
+            // Hiển thị Dòng TỔNG TOÀN XƯỞNG
+            if (activeMachinesCount > 0) {
+                // Sức chứa toàn xưởng = Ngày làm việc * Giờ 1 ngày * Số lượng máy hoạt động
+                const totalFactoryCapacitySeconds = workingDays * 21.75 * 3600 * activeMachinesCount;
+                
+                let totPctRunning = 0, totPctSetup = 0, totPctSize = 0, totPctDown = 0;
+                if (totalFactoryCapacitySeconds > 0) {
+                    totPctRunning = Math.round((sumRunning / totalFactoryCapacitySeconds) * 100);
+                    totPctSetup = Math.round((sumSetup / totalFactoryCapacitySeconds) * 100);
+                    totPctSize = Math.round((sumSize / totalFactoryCapacitySeconds) * 100);
+                    totPctDown = Math.round((sumDown / totalFactoryCapacitySeconds) * 100);
+                }
+
+                document.getElementById('txtReportNote').innerText = `* Khoảng lọc có: ${workingDays} ngày làm việc. Quỹ thời gian mẫu số Toàn xưởng = ${workingDays} ngày x 21.75 giờ x ${activeMachinesCount} máy.`;
+
+                const avgOeeClass = totPctRunning < 60 ? 'oee-bad' : (totPctRunning >= 60 ? 'oee-good' : '');
+
+                const trTotal = document.createElement('tr');
+                trTotal.className = 'tr-total';
+                trTotal.innerHTML = `
+                    <td>TỔNG TOÀN XƯỞNG<br><span style="font-size:10px; font-weight:normal;">(${activeMachinesCount} máy)</span></td>
+                    <td>${convertSecondsToHoursText(sumRunning)} <span class="sub-pct pct-running">(${totPctRunning}%)</span></td>
+                    <td>${convertSecondsToHoursText(sumSetup)} <span class="sub-pct pct-setup">(${totPctSetup}%)</span></td>
+                    <td>${convertSecondsToHoursText(sumSize)} <span class="sub-pct pct-size">(${totPctSize}%)</span></td>
+                    <td>${convertSecondsToHoursText(sumDown)} <span class="sub-pct pct-down">(${totPctDown}%)</span></td>
+                    <td class="${avgOeeClass}">${totPctRunning}%</td>
+                `;
+                tbody.appendChild(trTotal);
+
+                lastReportCalculatedData.push({
+                    machine: `TỔNG TOÀN XƯỞNG (${activeMachinesCount} máy)`,
+                    running: `${convertSecondsToHoursText(sumRunning)} (${totPctRunning}%)`,
+                    setup: `${convertSecondsToHoursText(sumSetup)} (${totPctSetup}%)`,
+                    size: `${convertSecondsToHoursText(sumSize)} (${totPctSize}%)`,
+                    down: `${convertSecondsToHoursText(sumDown)} (${totPctDown}%)`,
+                    oee: totPctRunning + '%'
+                });
+            } else {
+                document.getElementById('txtReportNote').innerText = `* Khoảng lọc có: ${workingDays} ngày làm việc. Hệ thống ghi nhận chưa có máy nào hoạt động.`;
+                const trTotal = document.createElement('tr');
+                trTotal.className = 'tr-total';
+                trTotal.innerHTML = `
+                    <td>TỔNG TOÀN XƯỞNG<br><span style="font-size:10px; font-weight:normal;">(0 máy)</span></td>
+                    <td>0 Giờ 0P <span class="sub-pct pct-running">(0%)</span></td>
+                    <td>0 Giờ 0P <span class="sub-pct pct-setup">(0%)</span></td>
+                    <td>0 Giờ 0P <span class="sub-pct pct-size">(0%)</span></td>
+                    <td>0 Giờ 0P <span class="sub-pct pct-down">(0%)</span></td>
+                    <td>0%</td>
+                `;
+                tbody.appendChild(trTotal);
+            }
 
             if (document.getElementById('chartWrapper').style.display === 'block') { renderChart(); }
         };
@@ -574,7 +678,7 @@
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", `Bao_Cao_Nang_Suat_${document.getElementById('reportFromDate').value}.csv`);
+            link.setAttribute("download", `Bao_Cao_Nang_Suat_Tu_${document.getElementById('reportFromDate').value}_Den_${document.getElementById('reportToDate').value}.csv`);
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         };
 
@@ -646,19 +750,16 @@
 
             carouselContainer.innerHTML = ''; ovalContainer.innerHTML = '';
 
-            // Mặc định hiện tất cả các vùng khu vực máy
             zoneCarousel.style.display = 'block'; titleCarousel.style.display = 'block';
-            zoneOval.style.display = 'block'; titleOval.style.display = 'block';
+            zoneOval.style.display = 'block'; titleOval.style.display = 'none';
 
             let counts = { running: 0, setup: 0, size: 0, down: 0, nodata: 0 };
             const sortedKeys = Object.keys(dbLocal).sort();
 
-            // CẬP NHẬT: Lọc danh sách máy dựa trên quyền đăng nhập của thiết bị
             let keysToRender = sortedKeys;
             if (currentAssignedMachine && currentAssignedMachine !== 'ADMIN') {
                 keysToRender = sortedKeys.filter(id => id === currentAssignedMachine);
                 
-                // Ẩn vùng không liên quan để giao diện gọn gàng cho công nhân
                 if (currentAssignedMachine.startsWith('C')) {
                     zoneOval.style.display = 'none'; titleOval.style.display = 'none';
                 } else if (currentAssignedMachine.startsWith('O')) {
@@ -782,19 +883,40 @@
 
             if (oldStatus !== newStatus) {
                 if (oldStatus !== 'nodata') {
-                    const elapsedSeconds = getNetDurationSeconds(startTime, now);
-                    if (elapsedSeconds > 0) {
+                    const totalElapsedSeconds = getNetDurationSeconds(startTime, now);
+                    if (totalElapsedSeconds > 0) {
                         const field = `total_${oldStatus}`;
-                        updates[field] = (oldMachine[field] || 0) + elapsedSeconds;
+                        updates[field] = (oldMachine[field] || 0) + totalElapsedSeconds;
 
-                        push(logsRef, {
-                            machineId: selectedMachineId,
-                            status: oldStatus,
-                            durationSeconds: elapsedSeconds,
-                            date: new Date().toISOString().split('T')[0],
-                            productionDate: getProductionDate(now),
-                            timestamp: now
-                        });
+                        let currentStart = startTime;
+                        while (currentStart < now) {
+                            let boundary = new Date(currentStart);
+                            boundary.setHours(6, 0, 0, 0); 
+                            
+                            if (boundary.getTime() <= currentStart) {
+                                boundary.setDate(boundary.getDate() + 1);
+                            }
+                            
+                            let currentEnd = boundary.getTime();
+                            if (currentEnd > now) {
+                                currentEnd = now;
+                            }
+
+                            const chunkSeconds = getNetDurationSeconds(currentStart, currentEnd);
+                            if (chunkSeconds > 0) {
+                                const calculatedProdDate = getProductionDate(currentStart);
+
+                                push(logsRef, {
+                                    machineId: selectedMachineId,
+                                    status: oldStatus,
+                                    durationSeconds: chunkSeconds,
+                                    date: new Date(currentStart).toLocaleDateString('fr-CA'), 
+                                    productionDate: calculatedProdDate, 
+                                    timestamp: now
+                                });
+                            }
+                            currentStart = currentEnd; 
+                        }
                     }
                 }
                 startTime = now;
@@ -822,7 +944,7 @@
 
         document.getElementById('btnResetHistory').addEventListener('click', function() {
             if (!selectedMachineId || currentAssignedMachine !== 'ADMIN') return;
-            if (confirm("⚠️ Chứ ý: Hành động này sẽ RESET hoàn toàn thời gian tích lũy trọn đời của máy về 0h! Bạn vẫn muốn tiếp tục?")) {
+            if (confirm("⚠️ Chú ý: Hành động này sẽ RESET hoàn toàn thời gian tích lũy trọn đời của máy về 0h! Bạn vẫn muốn tiếp tục?")) {
                 update(ref(database, `machines/${selectedMachineId}`), {
                     total_running: 0, total_setup: 0, total_size: 0, total_down: 0,
                     statusStartTime: Date.now()
@@ -839,7 +961,7 @@
                 const headerEl = document.getElementById(`header-${id}`);
                 if (headerEl) {
                     const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
-                    headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `machine-header bg-${machine.status || 'nodata'}`;
+                    headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `bg-${machine.status || 'nodata'}`;
                 }
             });
 
