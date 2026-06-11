@@ -531,32 +531,54 @@
             });
         }
 
-        window.calculateDetailedReport = function() {
-            const fromDate = document.getElementById('reportFromDate').value;
-            const toDate = document.getElementById('reportToDate').value;
-            const tbody = document.getElementById('reportTableBody');
-            tbody.innerHTML = "";
+       window.calculateDetailedReport = function() {
+    const fromDate = document.getElementById('reportFromDate').value;
+    const toDate = document.getElementById('reportToDate').value;
+    const tbody = document.getElementById('reportTableBody');
+    tbody.innerHTML = "";
 
-            if (!fromDate || !toDate) { alert("Vui lòng chọn ngày!"); return; }
+    if (!fromDate || !toDate) { alert("Vui lòng chọn ngày!"); return; }
 
-            const workingDays = countWorkingDays(fromDate, toDate);
+    const workingDays = countWorkingDays(fromDate, toDate);
+    const now = Date.now();
+    const todayStr = getProductionDate(now);
 
-            let reportData = {};
-            Object.keys(dbLocal).sort().forEach(mid => {
-                reportData[mid] = { running: 0, setup: 0, size: 0, down: 0 };
-            });
+    let reportData = {};
+    Object.keys(dbLocal).sort().forEach(mid => {
+        reportData[mid] = { running: 0, setup: 0, size: 0, down: 0 };
+    });
 
-            if (dbLogsLocal) {
-                Object.keys(dbLogsLocal).forEach(logId => {
-                    const log = dbLogsLocal[logId];
-                    const targetLogDate = log.productionDate || log.date; 
-                    if (targetLogDate >= fromDate && targetLogDate <= toDate && reportData[log.machineId]) {
-                        if (reportData[log.machineId][log.status] !== undefined) {
-                            reportData[log.machineId][log.status] += parseInt(log.durationSeconds || 0);
-                        }
-                    }
-                });
+    // 1. Cộng dồn dữ liệu đã có trong logs
+    if (dbLogsLocal) {
+        Object.keys(dbLogsLocal).forEach(logId => {
+            const log = dbLogsLocal[logId];
+            const targetLogDate = log.productionDate || log.date; 
+            if (targetLogDate >= fromDate && targetLogDate <= toDate && reportData[log.machineId]) {
+                if (reportData[log.machineId][log.status] !== undefined) {
+                    reportData[log.machineId][log.status] += parseInt(log.durationSeconds || 0);
+                }
             }
+        });
+    }
+
+ // 2. CỘNG THÊM DỮ LIỆU REALTIME (Luôn cộng nếu máy đang ở trạng thái đó)
+Object.keys(dbLocal).forEach(mid => {
+    const m = dbLocal[mid];
+    // Chỉ cần máy có trạng thái và đã bắt đầu
+    if (m.status && m.status !== 'nodata' && m.statusStartTime) {
+        const liveDuration = getNetDurationSeconds(m.statusStartTime, now);
+        
+        // Kiểm tra xem trạng thái đó có nằm trong khoảng ngày báo cáo hay không
+        const statusDate = getProductionDate(m.statusStartTime);
+        
+        if (liveDuration > 0 && reportData[mid] && reportData[mid][m.status] !== undefined) {
+            // NẾU ngày bắt đầu trạng thái nằm trong khoảng lọc HOẶC đang là ngày hiện tại
+            if (statusDate <= toDate) {
+                 reportData[mid][m.status] += liveDuration;
+            }
+        }
+    }
+});
 
             lastReportCalculatedData = [];
 
