@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v19.5)</title>
+    <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v19.7)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -164,7 +164,7 @@
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v19.5)</h1>
+            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v19.7)</h1>
             <div class="auth-zone">
                 <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo Năng Suất & OEE</button>
                 <span class="user-status" id="netStatus" style="background: #e2e8f0; color: #475569;">⚡ Đang kết nối...</span>
@@ -245,8 +245,16 @@
                 </table>
             </div>
 
-            <div id="chartWrapper" style="display: none; height: 300px; padding: 20px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 10px;">
-                <canvas id="oeeChart"></canvas>
+            <div id="chartWrapper" style="display: none; padding: 20px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 10px;">
+                <div style="margin-bottom: 25px;">
+                    <h4 style="font-size: 13px; color: #2563eb; margin-bottom: 10px; text-align: center;">📈 HIỆU SUẤT OEE - KHU MÁY TRÒN CAROUSEL (C)</h4>
+                    <div style="height: 220px;"><canvas id="oeeChartC"></canvas></div>
+                </div>
+                <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 20px 0;">
+                <div>
+                    <h4 style="font-size: 13px; color: #2563eb; margin-bottom: 10px; text-align: center;">📈 HIỆU SUẤT OEE - KHU MÁY DÀI OVAL (O)</h4>
+                    <div style="height: 220px;"><canvas id="oeeChartO"></canvas></div>
+                </div>
             </div>
 
             <div class="modal-buttons">
@@ -330,7 +338,10 @@
         let dbLocal = {}; let dbLogsLocal = {};
         let selectedMachineId = null; let currentFilterStatus = 'all'; let currentAssignedMachine = null;
         let lastReportCalculatedData = [];
-        let chartInstance = null; 
+        
+        // CHỈNH SỬA: Đổi sang 2 biến biểu đồ
+        let chartInstanceC = null; 
+        let chartInstanceO = null;
 
         const MEAL_BREAKS = [
             { start: 10 * 60,       end: 10 * 60 + 30 },       
@@ -503,86 +514,123 @@
             }
         };
 
+        // CHỈNH SỬA: Hàm render 2 biểu đồ riêng biệt
         function renderChart() {
-            const ctx = document.getElementById('oeeChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-            
-            // Loại bỏ dòng TỔNG TOÀN XƯỞNG khỏi biểu đồ để tránh sai lệch cột
-            const filteredDataForChart = lastReportCalculatedData.filter(d => !d.machine.includes("TỔNG TOÀN XƯỞNG"));
-            const labels = filteredDataForChart.map(d => d.machine);
-            const data = filteredDataForChart.map(d => parseInt(d.oee));
+            const ctxC = document.getElementById('oeeChartC').getContext('2d');
+            const ctxO = document.getElementById('oeeChartO').getContext('2d');
 
-            chartInstance = new Chart(ctx, {
+            if (chartInstanceC) chartInstanceC.destroy();
+            if (chartInstanceO) chartInstanceO.destroy();
+            
+            // Lọc bỏ dòng TỔNG TOÀN XƯỞNG
+            const filteredData = lastReportCalculatedData.filter(d => !d.machine.includes("TỔNG TOÀN XƯỞNG"));
+
+            // Tách thành 2 mảng Máy C và Máy O
+            const dataC = filteredData.filter(d => d.machine.includes("MÁY C"));
+            const dataO = filteredData.filter(d => d.machine.includes("MÁY O"));
+
+            // Vẽ biểu đồ cho Máy C (Carousel)
+            chartInstanceC = new Chart(ctxC, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: dataC.map(d => d.machine),
                     datasets: [{
-                        label: 'OEE (%)',
-                        data: data,
-                        backgroundColor: data.map(v => v < 60 ? '#ef4444' : '#10b981'),
+                        label: 'OEE (%) - MÁY C',
+                        data: dataC.map(d => parseInt(d.oee)),
+                        backgroundColor: dataC.map(d => parseInt(d.oee) < 60 ? '#ef4444' : '#10b981'),
                         borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100 } }
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Vẽ biểu đồ cho Máy O (Oval)
+            chartInstanceO = new Chart(ctxO, {
+                type: 'bar',
+                data: {
+                    labels: dataO.map(d => d.machine),
+                    datasets: [{
+                        label: 'OEE (%) - MÁY O',
+                        data: dataO.map(d => parseInt(d.oee)),
+                        backgroundColor: dataO.map(d => parseInt(d.oee) < 60 ? '#ef4444' : '#10b981'),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
 
-       window.calculateDetailedReport = function() {
-    const fromDate = document.getElementById('reportFromDate').value;
-    const toDate = document.getElementById('reportToDate').value;
-    const tbody = document.getElementById('reportTableBody');
-    tbody.innerHTML = "";
+        window.calculateDetailedReport = function() {
+            const fromDate = document.getElementById('reportFromDate').value;
+            const toDate = document.getElementById('reportToDate').value;
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = "";
 
-    if (!fromDate || !toDate) { alert("Vui lòng chọn ngày!"); return; }
+            if (!fromDate || !toDate) { alert("Vui lòng chọn ngày!"); return; }
 
-    const workingDays = countWorkingDays(fromDate, toDate);
-    const now = Date.now();
-    const todayStr = getProductionDate(now);
+            const workingDays = countWorkingDays(fromDate, toDate);
+            const now = Date.now();
 
-    let reportData = {};
-    Object.keys(dbLocal).sort().forEach(mid => {
-        reportData[mid] = { running: 0, setup: 0, size: 0, down: 0 };
-    });
+            let reportData = {};
+            Object.keys(dbLocal).sort().forEach(mid => {
+                reportData[mid] = { running: 0, setup: 0, size: 0, down: 0 };
+            });
 
-    // 1. Cộng dồn dữ liệu đã có trong logs
-    if (dbLogsLocal) {
-        Object.keys(dbLogsLocal).forEach(logId => {
-            const log = dbLogsLocal[logId];
-            const targetLogDate = log.productionDate || log.date; 
-            if (targetLogDate >= fromDate && targetLogDate <= toDate && reportData[log.machineId]) {
-                if (reportData[log.machineId][log.status] !== undefined) {
-                    reportData[log.machineId][log.status] += parseInt(log.durationSeconds || 0);
+            if (dbLogsLocal) {
+                Object.keys(dbLogsLocal).forEach(logId => {
+                    const log = dbLogsLocal[logId];
+                    const targetLogDate = log.productionDate || log.date; 
+                    if (targetLogDate >= fromDate && targetLogDate <= toDate && reportData[log.machineId]) {
+                        if (reportData[log.machineId][log.status] !== undefined) {
+                            reportData[log.machineId][log.status] += parseInt(log.durationSeconds || 0);
+                        }
+                    }
+                });
+            }
+
+            Object.keys(dbLocal).forEach(mid => {
+                const m = dbLocal[mid];
+                if (m.status && m.status !== 'nodata' && m.statusStartTime) {
+                    
+                    let currentStart = m.statusStartTime;
+                    while (currentStart < now) {
+                        let boundary = new Date(currentStart);
+                        boundary.setHours(6, 0, 0, 0); 
+                        if (boundary.getTime() <= currentStart) {
+                            boundary.setDate(boundary.getDate() + 1);
+                        }
+                        
+                        let currentEnd = boundary.getTime();
+                        if (currentEnd > now) {
+                            currentEnd = now;
+                        }
+
+                        const chunkSeconds = getNetDurationSeconds(currentStart, currentEnd);
+                        if (chunkSeconds > 0) {
+                            const calculatedProdDate = getProductionDate(currentStart);
+                            if (calculatedProdDate >= fromDate && calculatedProdDate <= toDate) {
+                                if (reportData[mid][m.status] !== undefined) {
+                                    reportData[mid][m.status] += chunkSeconds;
+                                }
+                            }
+                        }
+                        currentStart = currentEnd;
+                    }
                 }
-            }
-        });
-    }
-
- // 2. CỘNG THÊM DỮ LIỆU REALTIME (Luôn cộng nếu máy đang ở trạng thái đó)
-Object.keys(dbLocal).forEach(mid => {
-    const m = dbLocal[mid];
-    // Chỉ cần máy có trạng thái và đã bắt đầu
-    if (m.status && m.status !== 'nodata' && m.statusStartTime) {
-        const liveDuration = getNetDurationSeconds(m.statusStartTime, now);
-        
-        // Kiểm tra xem trạng thái đó có nằm trong khoảng ngày báo cáo hay không
-        const statusDate = getProductionDate(m.statusStartTime);
-        
-        if (liveDuration > 0 && reportData[mid] && reportData[mid][m.status] !== undefined) {
-            // NẾU ngày bắt đầu trạng thái nằm trong khoảng lọc HOẶC đang là ngày hiện tại
-            if (statusDate <= toDate) {
-                 reportData[mid][m.status] += liveDuration;
-            }
-        }
-    }
-});
+            });
 
             lastReportCalculatedData = [];
 
-            // Các biến phục vụ tính toán Tổng toàn xưởng
             let sumRunning = 0, sumSetup = 0, sumSize = 0, sumDown = 0;
             let activeMachinesCount = 0;
 
@@ -598,7 +646,6 @@ Object.keys(dbLocal).forEach(mid => {
                     activeMachinesCount++;
                 }
 
-                // Tính % cho từng máy đơn lẻ
                 const machineCapacitySeconds = workingDays * 21.75 * 3600;
                 let pctRunning = 0, pctSetup = 0, pctSize = 0, pctDown = 0;
                 
@@ -633,9 +680,7 @@ Object.keys(dbLocal).forEach(mid => {
                 });
             });
 
-            // Hiển thị Dòng TỔNG TOÀN XƯỞNG
             if (activeMachinesCount > 0) {
-                // Sức chứa toàn xưởng = Ngày làm việc * Giờ 1 ngày * Số lượng máy hoạt động
                 const totalFactoryCapacitySeconds = workingDays * 21.75 * 3600 * activeMachinesCount;
                 
                 let totPctRunning = 0, totPctSetup = 0, totPctSize = 0, totPctDown = 0;
@@ -646,7 +691,7 @@ Object.keys(dbLocal).forEach(mid => {
                     totPctDown = Math.round((sumDown / totalFactoryCapacitySeconds) * 100);
                 }
 
-                document.getElementById('txtReportNote').innerText = `* Khoảng lọc có: ${workingDays} ngày làm việc. Quỹ thời gian mẫu số Toàn xưởng = ${workingDays} ngày x 21.75 giờ x ${activeMachinesCount} máy.`;
+                document.getElementById('txtReportNote').innerText = `* Lọc có: ${workingDays} ngày làm việc. Quỹ thời gian mẫu số = ${workingDays} ngày x 21.75 giờ x ${activeMachinesCount} máy. ĐÃ BAO GỒM GIỜ REALTIME.`;
 
                 const avgOeeClass = totPctRunning < 60 ? 'oee-bad' : (totPctRunning >= 60 ? 'oee-good' : '');
 
@@ -773,7 +818,7 @@ Object.keys(dbLocal).forEach(mid => {
             carouselContainer.innerHTML = ''; ovalContainer.innerHTML = '';
 
             zoneCarousel.style.display = 'block'; titleCarousel.style.display = 'block';
-            zoneOval.style.display = 'block'; titleOval.style.display = 'none';
+            zoneOval.style.display = 'block'; titleOval.style.display = 'block'; 
 
             let counts = { running: 0, setup: 0, size: 0, down: 0, nodata: 0 };
             const sortedKeys = Object.keys(dbLocal).sort();
