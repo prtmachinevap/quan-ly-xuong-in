@@ -53,12 +53,15 @@
         #carousel-container { grid-template-columns: repeat(2, 1fr); }
         #oval-container { grid-template-columns: repeat(2, 1fr); }
 
-        .machine-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.04); transition: transform 0.15s, box-shadow 0.15s; }
+        /* Đã cập nhật position: relative để căn chỉnh timer absolute */
+        .machine-card { position: relative; background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.04); transition: transform 0.15s, box-shadow 0.15s; }
         .machine-card:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.08); }
         .machine-card.hidden-by-filter { display: none !important; }
 
-        .machine-header { padding: 8px 10px; font-weight: 700; font-size: 12px; color: #ffffff; display: flex; justify-content: space-between; align-items: center; }
-        .machine-timer { font-family: monospace; font-size: 11px; background-color: rgba(0, 0, 0, 0.18); padding: 2px 5px; border-radius: 3px; }
+        .machine-header { padding: 8px 10px; font-weight: 700; font-size: 12px; color: #ffffff; display: flex; align-items: center; min-height: 32px; }
+        
+        /* Bộ đếm thời gian ở góc phải */
+        .machine-timer { position: absolute; right: 8px; top: 6px; font-family: monospace; font-size: 11px; background-color: rgba(0, 0, 0, 0.25); padding: 2px 6px; border-radius: 4px; font-weight: bold; letter-spacing: 0.5px; }
 
         .bg-running { background-color: var(--status-running); color: #fff; }
         .bg-setup { background-color: var(--status-setup); color: #0f172a !important; }
@@ -71,12 +74,13 @@
             .stat-item:first-child, .stat-item:last-child { grid-column: span 1; }
         }
 
+        /* Hiệu ứng nhấp nháy cập nhật */
         @keyframes pulse-warning {
             0% { background-color: #ef4444; color: #fff; }
-            50% { background-color: #f59e0b; color: #0f172a; }
+            50% { background-color: #fb923c; color: #000; }
             100% { background-color: #ef4444; color: #fff; }
         }
-        .bg-alert-overtime { animation: pulse-warning 1.2s infinite; }
+        .bg-alert-overtime { animation: pulse-warning 1.2s infinite; border-bottom: 1px solid #fff; }
 
         .machine-body { padding: 14px 10px; font-size: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #ffffff; min-height: 55px; }
         .status-display-text { font-size: 13px; font-weight: 700; text-align: center; width: 100%; }
@@ -97,7 +101,7 @@
             #carousel-container { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(2, 1fr); }
             #oval-container { grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(3, 1fr); } 
             
-            .machine-card { justify-content: space-between; height: 100%; }
+            .machine-card { height: 100%; }
             .machine-header { padding: 6px 10px; font-size: 12px; }
             .machine-body { padding: 6px; justify-content: center; height: 100%; min-height: auto; }
             .status-display-text { font-size: 12px; }
@@ -339,7 +343,6 @@
         let selectedMachineId = null; let currentFilterStatus = 'all'; let currentAssignedMachine = null;
         let lastReportCalculatedData = [];
         
-        // CHỈNH SỬA: Đổi sang 2 biến biểu đồ
         let chartInstanceC = null; 
         let chartInstanceO = null;
 
@@ -363,6 +366,20 @@
                 netStatusEl.style.color = "#dc2626";
             }
         });
+
+        // Hàm kiểm tra quá giờ linh hoạt theo trạng thái
+        function checkOvertimeAlert(status, startTimeMs) {
+            if (!startTimeMs || ['running', 'nodata'].includes(status)) return false;
+            
+            const diffSeconds = Math.floor((Date.now() - startTimeMs) / 1000);
+            
+            if (status === 'setup') {
+                return diffSeconds > 7200; // Thay đơn > 2h
+            } else if (status === 'size' || status === 'down') {
+                return diffSeconds > 3600; // Thay size, máy dừng > 1h
+            }
+            return false;
+        }
 
         function getNetDurationSeconds(startTimeMs, endTimeMs) {
             if (!startTimeMs || !endTimeMs || endTimeMs <= startTimeMs) return 0;
@@ -514,7 +531,6 @@
             }
         };
 
-        // CHỈNH SỬA: Hàm render 2 biểu đồ riêng biệt
         function renderChart() {
             const ctxC = document.getElementById('oeeChartC').getContext('2d');
             const ctxO = document.getElementById('oeeChartO').getContext('2d');
@@ -522,14 +538,11 @@
             if (chartInstanceC) chartInstanceC.destroy();
             if (chartInstanceO) chartInstanceO.destroy();
             
-            // Lọc bỏ dòng TỔNG TOÀN XƯỞNG
             const filteredData = lastReportCalculatedData.filter(d => !d.machine.includes("TỔNG TOÀN XƯỞNG"));
 
-            // Tách thành 2 mảng Máy C và Máy O
             const dataC = filteredData.filter(d => d.machine.includes("MÁY C"));
             const dataO = filteredData.filter(d => d.machine.includes("MÁY O"));
 
-            // Vẽ biểu đồ cho Máy C (Carousel)
             chartInstanceC = new Chart(ctxC, {
                 type: 'bar',
                 data: {
@@ -549,7 +562,6 @@
                 }
             });
 
-            // Vẽ biểu đồ cho Máy O (Oval)
             chartInstanceO = new Chart(ctxO, {
                 type: 'bar',
                 data: {
@@ -580,6 +592,7 @@
 
             const workingDays = countWorkingDays(fromDate, toDate);
             const now = Date.now();
+            const todayStr = getProductionDate(now);
 
             let reportData = {};
             Object.keys(dbLocal).sort().forEach(mid => {
@@ -601,30 +614,13 @@
             Object.keys(dbLocal).forEach(mid => {
                 const m = dbLocal[mid];
                 if (m.status && m.status !== 'nodata' && m.statusStartTime) {
+                    const liveDuration = getNetDurationSeconds(m.statusStartTime, now);
+                    const statusDate = getProductionDate(m.statusStartTime);
                     
-                    let currentStart = m.statusStartTime;
-                    while (currentStart < now) {
-                        let boundary = new Date(currentStart);
-                        boundary.setHours(6, 0, 0, 0); 
-                        if (boundary.getTime() <= currentStart) {
-                            boundary.setDate(boundary.getDate() + 1);
+                    if (liveDuration > 0 && reportData[mid] && reportData[mid][m.status] !== undefined) {
+                        if (statusDate <= toDate) {
+                            reportData[mid][m.status] += liveDuration;
                         }
-                        
-                        let currentEnd = boundary.getTime();
-                        if (currentEnd > now) {
-                            currentEnd = now;
-                        }
-
-                        const chunkSeconds = getNetDurationSeconds(currentStart, currentEnd);
-                        if (chunkSeconds > 0) {
-                            const calculatedProdDate = getProductionDate(currentStart);
-                            if (calculatedProdDate >= fromDate && calculatedProdDate <= toDate) {
-                                if (reportData[mid][m.status] !== undefined) {
-                                    reportData[mid][m.status] += chunkSeconds;
-                                }
-                            }
-                        }
-                        currentStart = currentEnd;
                     }
                 }
             });
@@ -691,7 +687,7 @@
                     totPctDown = Math.round((sumDown / totalFactoryCapacitySeconds) * 100);
                 }
 
-                document.getElementById('txtReportNote').innerText = `* Lọc có: ${workingDays} ngày làm việc. Quỹ thời gian mẫu số = ${workingDays} ngày x 21.75 giờ x ${activeMachinesCount} máy. ĐÃ BAO GỒM GIỜ REALTIME.`;
+                document.getElementById('txtReportNote').innerText = `* Khoảng lọc có: ${workingDays} ngày làm việc. Quỹ thời gian mẫu số Toàn xưởng = ${workingDays} ngày x 21.75 giờ x ${activeMachinesCount} máy.`;
 
                 const avgOeeClass = totPctRunning < 60 ? 'oee-bad' : (totPctRunning >= 60 ? 'oee-good' : '');
 
@@ -784,12 +780,6 @@
             return `${h}:${m}:${s}`;
         }
 
-        function checkOvertimeAlert(status, startTimeMs) {
-            if (!startTimeMs || ['running', 'nodata'].includes(status)) return false;
-            const diffSeconds = Math.floor((Date.now() - startTimeMs) / 1000);
-            return diffSeconds > 3600; 
-        }
-
         const statusLabelMap = {
             'running': '⚡ ĐANG CHẠY HÀNG', 
             'setup': '🔧 ĐANG THAY ĐƠN',
@@ -845,7 +835,14 @@
                 const headerClass = isOvertime ? 'bg-alert-overtime' : `bg-${status}`;
                 
                 let labelText = statusLabelMap[status] || '⚪ CHƯA CẬP NHẬT';
-                if (status === 'down' && machine.downReason) {
+                
+                // Thêm cảnh báo nếu bị vượt giờ
+                if (isOvertime) {
+                    let limitText = (status === 'setup') ? 'QUÁ 2 GIỜ!' : 'QUÁ 1 GIỜ!';
+                    labelText += `<br><span style="color:#ef4444; font-weight:800; font-size:11px; display:block; margin-top:4px;">⚠️ ${limitText}</span>`;
+                }
+                
+                if (status === 'down' && machine.downReason && !isOvertime) {
                     labelText += `<br><span style="font-size: 11px; color: #64748b; font-weight: 500; display: block; margin-top: 3px;">(${machine.downReason})</span>`;
                 }
 
@@ -857,12 +854,12 @@
 
                 card.innerHTML = `
                     <div class="machine-header ${headerClass}" id="header-${id}">
-                        <span>${isOvertime ? '⚠️ ' : ''}MÁY ${displayName}</span>
+                        <span>MÁY ${displayName}</span>
                         <span class="machine-timer" id="timer-${id}">${formatDurationText(machine.statusStartTime)}</span>
                     </div>
                     <div class="machine-body">
                         <div class="status-display-text" style="color:var(--status-${status});">
-                            ${labelText} ${isOvertime ? '<br><span style="color:red; font-weight:bold;">(QUÁ 1 GIỜ!)</span>' : ''}
+                            ${labelText}
                         </div>
                     </div>
                 `;
@@ -1028,7 +1025,7 @@
                 const headerEl = document.getElementById(`header-${id}`);
                 if (headerEl) {
                     const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
-                    headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `bg-${machine.status || 'nodata'}`;
+                    headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `machine-header bg-${machine.status || 'nodata'}`;
                 }
             });
 
