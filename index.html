@@ -831,7 +831,13 @@
                 const machine = dbLocal[id];
                 const status = machine.status || 'nodata';
                 const displayName = getDisplayMachineName(id);
-                const isOvertime = checkOvertimeAlert(status, machine.statusStartTime);
+                
+                // --- SỬA Ở ĐÂY: Xử lý triệt để chữ thường/hoa và khoảng trắng ---
+                let isOvertime = checkOvertimeAlert(status, machine.statusStartTime);
+                if (status === 'down' && machine.downReason && machine.downReason.toLowerCase().trim() === 'chạy mẫu') {
+                    isOvertime = false;
+                }
+                // ----------------------------------------------------------------
 
                 if (counts[status] !== undefined) counts[status]++;
 
@@ -1027,7 +1033,13 @@
 
                 const headerEl = document.getElementById(`header-${id}`);
                 if (headerEl) {
-                    const isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
+                    // --- SỬA Ở ĐÂY: Xử lý triệt để chữ thường/hoa và khoảng trắng ---
+                    let isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
+                    if (machine.status === 'down' && machine.downReason && machine.downReason.toLowerCase().trim() === 'chạy mẫu') {
+                        isOvertime = false;
+                    }
+                    // ----------------------------------------------------------------
+                    
                     headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `machine-header bg-${machine.status || 'nodata'}`;
                 }
             });
