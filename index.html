@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v19.7)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
 
         :root {
@@ -172,7 +173,7 @@
 
     <header>
         <div class="header-top">
-            <h1>HỆ THỐNG GIÁM SÁT NĂNG SUẤT XƯỞNG IN (v19.7)</h1>
+            <h1>HỆ THỐNG QUẢN LÝ TRẠNG THÁI MÁY IN</h1>
             <div class="auth-zone">
                 <button class="btn-auth btn-report-trigger" onclick="openReportModal()">📊 Báo Cáo Năng Suất & OEE</button>
                 <span class="user-status" id="netStatus" style="background: #e2e8f0; color: #475569;">⚡ Đang kết nối...</span>
@@ -537,7 +538,7 @@
             }
         };
 
-        function renderChart() {
+        window.renderChart = function() {
             const ctxC = document.getElementById('oeeChartC').getContext('2d');
             const ctxO = document.getElementById('oeeChartO').getContext('2d');
 
@@ -545,48 +546,47 @@
             if (chartInstanceO) chartInstanceO.destroy();
             
             const filteredData = lastReportCalculatedData.filter(d => !d.machine.includes("TỔNG TOÀN XƯỞNG"));
-
             const dataC = filteredData.filter(d => d.machine.includes("MÁY C"));
             const dataO = filteredData.filter(d => d.machine.includes("MÁY O"));
 
-            chartInstanceC = new Chart(ctxC, {
+            // Cấu hình chung cho nhãn % trên biểu đồ
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 25 } }, // Chừa không gian cho nhãn phía trên
+                scales: { 
+                    y: { beginAtZero: true, max: 100, ticks: { callback: (value) => value + '%' } } 
+                },
+                plugins: { 
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        formatter: (value) => value + '%',
+                        color: '#1e293b',
+                        font: { weight: 'bold', size: 11 }
+                    }
+                }
+            };
+
+            const createChartConfig = (data, labelText) => ({
                 type: 'bar',
                 data: {
-                    labels: dataC.map(d => d.machine),
+                    labels: data.map(d => d.machine),
                     datasets: [{
-                        label: 'OEE (%) - MÁY C',
-                        data: dataC.map(d => parseInt(d.oee)),
-                        backgroundColor: dataC.map(d => parseInt(d.oee) < 60 ? '#ef4444' : '#10b981'),
+                        label: labelText,
+                        data: data.map(d => parseInt(d.oee)),
+                        backgroundColor: data.map(d => parseInt(d.oee) < 60 ? '#ef4444' : '#10b981'),
                         borderRadius: 4
                     }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100 } },
-                    plugins: { legend: { display: false } }
-                }
+                options: chartOptions,
+                plugins: [ChartDataLabels]
             });
 
-            chartInstanceO = new Chart(ctxO, {
-                type: 'bar',
-                data: {
-                    labels: dataO.map(d => d.machine),
-                    datasets: [{
-                        label: 'OEE (%) - MÁY O',
-                        data: dataO.map(d => parseInt(d.oee)),
-                        backgroundColor: dataO.map(d => parseInt(d.oee) < 60 ? '#ef4444' : '#10b981'),
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, max: 100 } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
+            chartInstanceC = new Chart(ctxC, createChartConfig(dataC, 'OEE (%) - MÁY C'));
+            chartInstanceO = new Chart(ctxO, createChartConfig(dataO, 'OEE (%) - MÁY O'));
+        };
 
         window.calculateDetailedReport = function() {
             const fromDate = document.getElementById('reportFromDate').value;
