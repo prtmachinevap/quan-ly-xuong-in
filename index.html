@@ -6,6 +6,7 @@
     <title>Hệ Thống Giám Sát Năng Suất Xưởng In - Đa Nền Tảng (v19.7)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+
         :root {
             --bg-main: #f1f5f9;   
             --bg-card: #ffffff;   
@@ -275,11 +276,12 @@
             
             <div class="form-group"><label>TRẠNG THÁI MÁY</label>
                 <select id="inputStatus" onchange="toggleDowntimeReasonField()">
-                    <option value="nodata">⚪ Chưa cập nhật dữ liệu</option>
+                    
                     <option value="running">⚡ Đang chạy hàng</option>
                     <option value="setup">🔧 Đang thay đơn</option>
                     <option value="size">📏 Đang thay size</option>
                     <option value="down">🚨 Máy dừng</option>
+                    <option value="nodata">⚪ Chưa cập nhật dữ liệu</option>
                 </select>
             </div>
 
@@ -288,6 +290,7 @@
                 <select id="inputDownReason">
                     <option value="Máy Hỏng">Máy Hỏng</option>
                     <option value="Hỏng Khung">Hỏng Khung</option>
+                      <option value="Chạy Mẫu">Chạy Mẫu</option>
                     <option value="Khác">Khác</option>
                 </select>
             </div>
