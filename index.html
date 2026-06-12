@@ -963,30 +963,50 @@
                     }
                 });
             }
-          logArray.sort((a, b) => b.timestamp - a.timestamp);
+          // ... bên trong hàm openModal ...
+            logArray.sort((a, b) => b.timestamp - a.timestamp); 
             
             if (logArray.length === 0) {
                 timeline.innerHTML = '<div style="font-size:11px; color:#64748b; padding:10px; text-align:center;">Chưa ghi nhận ca nào...</div>';
             } else {
-                logArray.slice(0, 10).forEach(l => {
-                    // Tính thời gian bắt đầu dựa trên thời gian kết thúc (timestamp) - thời lượng (durationSeconds)
-                    const endTime = new Date(l.timestamp);
-                    const startTime = new Date(l.timestamp - (l.durationSeconds * 1000));
+                let mergedLogs = [];
+                // Sắp xếp log từ cũ đến mới để dễ gộp
+                [...logArray].reverse().forEach((log) => {
+                    let logStart = log.timestamp - (log.durationSeconds * 1000);
+                    let logEnd = log.timestamp;
                     
-                    const startStr = startTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
-                    const endStr = endTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                    let lastMerged = mergedLogs[mergedLogs.length - 1];
+
+                    // Điều kiện gộp: Cùng trạng thái VÀ (log mới bắt đầu trước khi log cũ kết thúc hoặc vừa khớp)
+                    if (lastMerged && lastMerged.status === log.status && logStart <= lastMerged.endTime) {
+                        // Mở rộng thời gian kết thúc của log cũ
+                        lastMerged.endTime = Math.max(lastMerged.endTime, logEnd);
+                        lastMerged.durationSeconds = (lastMerged.endTime - new Date(lastMerged.startTime).getTime()) / 1000;
+                    } else {
+                        mergedLogs.push({
+                            ...log,
+                            startTime: new Date(logStart),
+                            endTime: logEnd,
+                            durationSeconds: log.durationSeconds
+                        });
+                    }
+                });
+
+                // Hiển thị lại từ mới nhất đến cũ nhất
+                mergedLogs.reverse().slice(0, 10).forEach(l => {
+                    const startStr = l.startTime.toLocaleString('vi-VN', {day:'2-digit', month:'2-digit', hour: '2-digit', minute:'2-digit'});
+                    const endStr = new Date(l.endTime).toLocaleString('vi-VN', {day:'2-digit', month:'2-digit', hour: '2-digit', minute:'2-digit'});
                     
                     timeline.innerHTML += `
-                        <div class="timeline-log-item" style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee;">
-                            <div>
-                                <div style="font-weight:bold; font-size:11px;">${l.productionDate}</div>
-                                <div style="font-size:10px; color:#666;">${startStr} - ${endStr}</div>
+                        <div class="timeline-log-item" style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee;">
+                            <div style="font-size:11px; font-weight:500;">
+                                ${startStr} <br> <span style="color:#666;">đến ${endStr}</span>
                             </div>
                             <div style="text-align:right;">
                                 <div style="color:var(--status-${l.status}); font-weight:bold; font-size:11px;">
                                     ${statusLabelMap[l.status]?.replace(/⚡ |🔧 |📏 |🚨 /g, '') || l.status}
                                 </div>
-                                <div style="font-size:10px;">⏱️ ${convertSecondsToHoursText(l.durationSeconds)}</div>
+                                <div style="font-size:11px;">⏱️ ${convertSecondsToHoursText(l.durationSeconds)}</div>
                             </div>
                         </div>
                     `;
