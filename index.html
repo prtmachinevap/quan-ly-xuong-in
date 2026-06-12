@@ -17,7 +17,7 @@
             --status-running: #10b981; 
             --status-setup: #eab308;   
             --status-size: #f97316;    
-            --status-down: #ef4444;    
+            --status-down: #6b7280;    
             --status-nodata: #64748b;
         }
 
@@ -67,7 +67,10 @@
         .bg-running { background-color: var(--status-running); color: #fff; }
         .bg-setup { background-color: var(--status-setup); color: #0f172a !important; }
         .bg-size { background-color: var(--status-size); color: #fff; }
-        .bg-down { background-color: var(--status-down); color: #fff; }
+        .bg-down {
+    background-color: #6b7280 !important; /* Màu xám */
+    color: #ffffff; /* Giữ chữ màu trắng cho dễ đọc */
+}
         .bg-nodata { background-color: var(--status-nodata); color: #fff; }
 
         @media (max-width: 1023px) {
@@ -599,7 +602,8 @@
 
             let reportData = {};
             Object.keys(dbLocal).sort().forEach(mid => {
-                reportData[mid] = { running: 0, setup: 0, size: 0, down: 0 };
+                // Thêm countSetup và countSize vào mảng dữ liệu báo cáo
+                reportData[mid] = { running: 0, setup: 0, size: 0, down: 0, countSetup: 0, countSize: 0 };
             });
 
             if (dbLogsLocal) {
@@ -609,20 +613,45 @@
                     if (targetLogDate >= fromDate && targetLogDate <= toDate && reportData[log.machineId]) {
                         if (reportData[log.machineId][log.status] !== undefined) {
                             reportData[log.machineId][log.status] += parseInt(log.durationSeconds || 0);
+                            
+                            // Đếm số lần thay đơn / thay size từ lịch sử
+                            if (log.status === 'setup') reportData[log.machineId].countSetup++;
+                            if (log.status === 'size') reportData[log.machineId].countSize++;
                         }
                     }
                 });
             }
 
+           // 1. Xác định mốc thời gian thực tế của khoảng lọc báo cáo (Từ 06:00 ngày fromDate đến 06:00 ngày toDate + 1)
+            let [fYear, fMonth, fDay] = fromDate.split('-');
+            let rangeStartMs = new Date(fYear, fMonth - 1, fDay, 6, 0, 0, 0).getTime();
+
+            let [tYear, tMonth, tDay] = toDate.split('-');
+            let rangeEndObj = new Date(tYear, tMonth - 1, tDay, 6, 0, 0, 0);
+            rangeEndObj.setDate(rangeEndObj.getDate() + 1);
+            let rangeEndMs = rangeEndObj.getTime();
+
+            // 2. Tính toán thời gian đang chạy (live) nằm gọn trong khoảng lọc
             Object.keys(dbLocal).forEach(mid => {
                 const m = dbLocal[mid];
                 if (m.status && m.status !== 'nodata' && m.statusStartTime) {
-                    const liveDuration = getNetDurationSeconds(m.statusStartTime, now);
-                    const statusDate = getProductionDate(m.statusStartTime);
                     
-                    if (liveDuration > 0 && reportData[mid] && reportData[mid][m.status] !== undefined) {
-                        if (statusDate <= toDate) {
-                            reportData[mid][m.status] += liveDuration;
+                    // Tìm khoảng thời gian giao nhau giữa thời gian bắt đầu chạy và khoảng thời gian lọc
+                    let overlapStart = Math.max(m.statusStartTime, rangeStartMs);
+                    let overlapEnd = Math.min(now, rangeEndMs);
+
+                    if (overlapStart < overlapEnd && reportData[mid] && reportData[mid][m.status] !== undefined) {
+                        // Tính thời lượng thực tế chỉ nằm trong khoảng ngày đang lọc báo cáo
+                        const liveDurationInFilter = getNetDurationSeconds(overlapStart, overlapEnd);
+                        
+                        if (liveDurationInFilter > 0) {
+                            reportData[mid][m.status] += liveDurationInFilter;
+                            
+                            // Đếm số lần thay đơn/size (chỉ đếm 1 lần nếu thời điểm bắt đầu thao tác đó nằm trong khoảng lọc)
+                            if (m.statusStartTime >= rangeStartMs && m.statusStartTime < rangeEndMs) {
+                                if (m.status === 'setup') reportData[mid].countSetup++;
+                                if (m.status === 'size') reportData[mid].countSize++;
+                            }
                         }
                     }
                 }
@@ -631,17 +660,20 @@
             lastReportCalculatedData = [];
 
             let sumRunning = 0, sumSetup = 0, sumSize = 0, sumDown = 0;
+            let sumCountSetup = 0, sumCountSize = 0;
             let activeMachinesCount = 0;
 
             Object.keys(reportData).sort().forEach(mid => {
                 const r = reportData[mid];
                 const totalMachineTime = r.running + r.setup + r.size + r.down;
 
-                if (totalMachineTime > 0) {
+                if (totalMachineTime > 0 || r.countSetup > 0 || r.countSize > 0) {
                     sumRunning += r.running;
                     sumSetup += r.setup;
                     sumSize += r.size;
                     sumDown += r.down;
+                    sumCountSetup += r.countSetup;
+                    sumCountSize += r.countSize;
                     activeMachinesCount++;
                 }
 
@@ -662,8 +694,14 @@
                 tr.innerHTML = `
                     <td style="font-weight:700; background:#f1f5f9;">MÁY ${displayName}</td>
                     <td>${convertSecondsToHoursText(r.running)} <span class="sub-pct pct-running">(${pctRunning}%)</span></td>
-                    <td>${convertSecondsToHoursText(r.setup)} <span class="sub-pct pct-setup">(${pctSetup}%)</span></td>
-                    <td>${convertSecondsToHoursText(r.size)} <span class="sub-pct pct-size">(${pctSize}%)</span></td>
+                    <td>
+                        ${convertSecondsToHoursText(r.setup)} <span class="sub-pct pct-setup">(${pctSetup}%)</span><br>
+                        <span style="font-size:12px; color:#d97706; font-weight:bold;">${r.countSetup} lần</span>
+                    </td>
+                    <td>
+                        ${convertSecondsToHoursText(r.size)} <span class="sub-pct pct-size">(${pctSize}%)</span><br>
+                        <span style="font-size:12px; color:#059669; font-weight:bold;">${r.countSize} lần</span>
+                    </td>
                     <td>${convertSecondsToHoursText(r.down)} <span class="sub-pct pct-down">(${pctDown}%)</span></td>
                     <td class="${oeeClass}">${pctRunning}%</td>
                 `;
@@ -673,7 +711,9 @@
                     machine: `MÁY ${displayName}`, 
                     running: `${convertSecondsToHoursText(r.running)} (${pctRunning}%)`, 
                     setup: `${convertSecondsToHoursText(r.setup)} (${pctSetup}%)`,
+                    countSetup: r.countSetup,
                     size: `${convertSecondsToHoursText(r.size)} (${pctSize}%)`, 
+                    countSize: r.countSize,
                     down: `${convertSecondsToHoursText(r.down)} (${pctDown}%)`, 
                     oee: pctRunning + '%'
                 });
@@ -699,8 +739,14 @@
                 trTotal.innerHTML = `
                     <td>TỔNG TOÀN XƯỞNG<br><span style="font-size:10px; font-weight:normal;">(${activeMachinesCount} máy)</span></td>
                     <td>${convertSecondsToHoursText(sumRunning)} <span class="sub-pct pct-running">(${totPctRunning}%)</span></td>
-                    <td>${convertSecondsToHoursText(sumSetup)} <span class="sub-pct pct-setup">(${totPctSetup}%)</span></td>
-                    <td>${convertSecondsToHoursText(sumSize)} <span class="sub-pct pct-size">(${totPctSize}%)</span></td>
+                    <td>
+                        ${convertSecondsToHoursText(sumSetup)} <span class="sub-pct pct-setup">(${totPctSetup}%)</span><br>
+                        <span style="font-size:12px; color:#d97706; font-weight:bold;">${sumCountSetup} lần</span>
+                    </td>
+                    <td>
+                        ${convertSecondsToHoursText(sumSize)} <span class="sub-pct pct-size">(${totPctSize}%)</span><br>
+                        <span style="font-size:12px; color:#059669; font-weight:bold;">${sumCountSize} lần</span>
+                    </td>
                     <td>${convertSecondsToHoursText(sumDown)} <span class="sub-pct pct-down">(${totPctDown}%)</span></td>
                     <td class="${avgOeeClass}">${totPctRunning}%</td>
                 `;
@@ -710,7 +756,9 @@
                     machine: `TỔNG TOÀN XƯỞNG (${activeMachinesCount} máy)`,
                     running: `${convertSecondsToHoursText(sumRunning)} (${totPctRunning}%)`,
                     setup: `${convertSecondsToHoursText(sumSetup)} (${totPctSetup}%)`,
+                    countSetup: sumCountSetup,
                     size: `${convertSecondsToHoursText(sumSize)} (${totPctSize}%)`,
+                    countSize: sumCountSize,
                     down: `${convertSecondsToHoursText(sumDown)} (${totPctDown}%)`,
                     oee: totPctRunning + '%'
                 });
@@ -721,8 +769,8 @@
                 trTotal.innerHTML = `
                     <td>TỔNG TOÀN XƯỞNG<br><span style="font-size:10px; font-weight:normal;">(0 máy)</span></td>
                     <td>0 Giờ 0P <span class="sub-pct pct-running">(0%)</span></td>
-                    <td>0 Giờ 0P <span class="sub-pct pct-setup">(0%)</span></td>
-                    <td>0 Giờ 0P <span class="sub-pct pct-size">(0%)</span></td>
+                    <td>0 Giờ 0P <span class="sub-pct pct-setup">(0%)</span><br><span style="font-size:12px; color:#d97706; font-weight:bold;">0 lần</span></td>
+                    <td>0 Giờ 0P <span class="sub-pct pct-size">(0%)</span><br><span style="font-size:12px; color:#059669; font-weight:bold;">0 lần</span></td>
                     <td>0 Giờ 0P <span class="sub-pct pct-down">(0%)</span></td>
                     <td>0%</td>
                 `;
@@ -735,9 +783,10 @@
         window.exportReportToCSV = function() {
             if (lastReportCalculatedData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
             let csvContent = "\uFEFF";
-            csvContent += "Ma May,Chay Hang,Thay Don,Thay Size,May Dung,Hieu Suat OEE\n";
+            // Thêm các cột số lần vào file CSV
+            csvContent += "Ma May,Chay Hang,Thay Don (Gio),So Lan Thay Don,Thay Size (Gio),So Lan Thay Size,May Dung,Hieu Suat OEE\n";
             lastReportCalculatedData.forEach(row => {
-                csvContent += `"${row.machine}","${row.running}","${row.setup}","${row.size}","${row.down}","${row.oee}"\n`;
+                csvContent += `"${row.machine}","${row.running}","${row.setup}","${row.countSetup || 0}","${row.size}","${row.countSize || 0}","${row.down}","${row.oee}"\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -832,12 +881,10 @@
                 const status = machine.status || 'nodata';
                 const displayName = getDisplayMachineName(id);
                 
-                // --- SỬA Ở ĐÂY: Xử lý triệt để chữ thường/hoa và khoảng trắng ---
                 let isOvertime = checkOvertimeAlert(status, machine.statusStartTime);
                 if (status === 'down' && machine.downReason && machine.downReason.toLowerCase().trim() === 'chạy mẫu') {
                     isOvertime = false;
                 }
-                // ----------------------------------------------------------------
 
                 if (counts[status] !== undefined) counts[status]++;
 
@@ -845,7 +892,6 @@
                 
                 let labelText = statusLabelMap[status] || '⚪ CHƯA CẬP NHẬT';
                 
-                // Thêm cảnh báo nếu bị vượt giờ
                 if (isOvertime) {
                     let limitText = (status === 'setup') ? 'QUÁ 2 GIỜ!' : 'QUÁ 1 GIỜ!';
                     labelText += `<br><span style="color:#ef4444; font-weight:800; font-size:11px; display:block; margin-top:4px;">⚠️ ${limitText}</span>`;
@@ -899,9 +945,10 @@
             document.getElementById('inputDownReason').value = m.downReason || 'Máy Hỏng';
             window.toggleDowntimeReasonField();
 
+            // Hiển thị lịch sử tích lũy trên modal
             document.getElementById('hist-running').innerText = convertSecondsToHoursText(m.total_running);
-            document.getElementById('hist-setup').innerText = convertSecondsToHoursText(m.total_setup);
-            document.getElementById('hist-size').innerText = convertSecondsToHoursText(m.total_size);
+            document.getElementById('hist-setup').innerText = convertSecondsToHoursText(m.total_setup) + ` (${m.count_setup || 0} lần)`;
+            document.getElementById('hist-size').innerText = convertSecondsToHoursText(m.total_size) + ` (${m.count_size || 0} lần)`;
             document.getElementById('hist-down').innerText = convertSecondsToHoursText(m.total_down);
 
             const timeline = document.getElementById('timelineLogList');
@@ -916,18 +963,31 @@
                     }
                 });
             }
-            logArray.sort((a, b) => b.timestamp - a.timestamp);
+          logArray.sort((a, b) => b.timestamp - a.timestamp);
             
             if (logArray.length === 0) {
                 timeline.innerHTML = '<div style="font-size:11px; color:#64748b; padding:10px; text-align:center;">Chưa ghi nhận ca nào...</div>';
             } else {
                 logArray.slice(0, 10).forEach(l => {
-                    const timeStr = new Date(l.timestamp).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                    // Tính thời gian bắt đầu dựa trên thời gian kết thúc (timestamp) - thời lượng (durationSeconds)
+                    const endTime = new Date(l.timestamp);
+                    const startTime = new Date(l.timestamp - (l.durationSeconds * 1000));
+                    
+                    const startStr = startTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                    const endStr = endTime.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                    
                     timeline.innerHTML += `
-                        <div class="timeline-log-item">
-                            <span>📅 ${l.productionDate || l.date} (${timeStr})</span>
-                            <span style="color:var(--status-${l.status}); font-weight:bold;">${statusLabelMap[l.status]?.replace('⚡ ', '')?.replace('🔧 ', '')?.replace('📏 ', '')?.replace('🚨 ', '') || l.status}</span>
-                            <span>⏱️ ${convertSecondsToHoursText(l.durationSeconds)}</span>
+                        <div class="timeline-log-item" style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee;">
+                            <div>
+                                <div style="font-weight:bold; font-size:11px;">${l.productionDate}</div>
+                                <div style="font-size:10px; color:#666;">${startStr} - ${endStr}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="color:var(--status-${l.status}); font-weight:bold; font-size:11px;">
+                                    ${statusLabelMap[l.status]?.replace(/⚡ |🔧 |📏 |🚨 /g, '') || l.status}
+                                </div>
+                                <div style="font-size:10px;">⏱️ ${convertSecondsToHoursText(l.durationSeconds)}</div>
+                            </div>
                         </div>
                     `;
                 });
@@ -993,6 +1053,12 @@
                     }
                 }
                 startTime = now;
+
+                if (newStatus === 'setup') {
+                    updates.count_setup = (oldMachine.count_setup || 0) + 1;
+                } else if (newStatus === 'size') {
+                    updates.count_size = (oldMachine.count_size || 0) + 1;
+                }
             }
 
             updates.status = newStatus;
@@ -1020,6 +1086,7 @@
             if (confirm("⚠️ Chú ý: Hành động này sẽ RESET hoàn toàn thời gian tích lũy trọn đời của máy về 0h! Bạn vẫn muốn tiếp tục?")) {
                 update(ref(database, `machines/${selectedMachineId}`), {
                     total_running: 0, total_setup: 0, total_size: 0, total_down: 0,
+                    count_setup: 0, count_size: 0,
                     statusStartTime: Date.now()
                 }).then(() => { window.closeModal(); });
             }
@@ -1033,13 +1100,10 @@
 
                 const headerEl = document.getElementById(`header-${id}`);
                 if (headerEl) {
-                    // --- SỬA Ở ĐÂY: Xử lý triệt để chữ thường/hoa và khoảng trắng ---
                     let isOvertime = checkOvertimeAlert(machine.status, machine.statusStartTime);
                     if (machine.status === 'down' && machine.downReason && machine.downReason.toLowerCase().trim() === 'chạy mẫu') {
                         isOvertime = false;
                     }
-                    // ----------------------------------------------------------------
-                    
                     headerEl.className = isOvertime ? 'machine-header bg-alert-overtime' : `machine-header bg-${machine.status || 'nodata'}`;
                 }
             });
