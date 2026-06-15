@@ -233,14 +233,14 @@
                 </div>
                 <button class="btn btn-save" style="height: 33px;" onclick="calculateDetailedReport()">Trích Xuất</button>
                 <button class="btn btn-excel" style="height: 33px;" onclick="exportReportToCSV()">📥 Xuất Excel</button>
-                <button class="btn" style="height: 33px; background: #8b5cf6; color: white;" onclick="toggleChart()">📈 Xem Biểu Đồ OEE</button>
+                <button class="btn" style="height: 33px; background: #8b5cf6; color: white;" onclick="toggleChart()">📈Biểu Đồ MOP</button>
             </div>
 
             <div class="report-table-wrapper" id="tableWrapper">
                 <table class="report-table">
                     <thead>
                         <tr>
-                            <th>Mã Máy</th>
+                            <th>Máy</th>
                             <th>⚡ Chạy hàng</th>
                             <th>🔧 Thay đơn</th>
                             <th>📏 Thay size</th>
@@ -256,12 +256,12 @@
 
             <div id="chartWrapper" style="display: none; padding: 20px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 10px;">
                 <div style="margin-bottom: 25px;">
-                    <h4 style="font-size: 13px; color: #2563eb; margin-bottom: 10px; text-align: center;">📈 HIỆU SUẤT OEE - KHU MÁY TRÒN CAROUSEL (C)</h4>
+                    <h4 style="font-size: 13px; color: #2563eb; margin-bottom: 10px; text-align: center;">📈 HIỆU SUẤT MOP - KHU MÁY TRÒN CAROUSEL (C)</h4>
                     <div style="height: 220px;"><canvas id="oeeChartC"></canvas></div>
                 </div>
                 <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 20px 0;">
                 <div>
-                    <h4 style="font-size: 13px; color: #2563eb; margin-bottom: 10px; text-align: center;">📈 HIỆU SUẤT OEE - KHU MÁY DÀI OVAL (O)</h4>
+                    <h4 style="font-size: 13px; color: #2563eb; margin-bottom: 10px; text-align: center;">📈 HIỆU SUẤT MOP - KHU MÁY DÀI OVAL (O)</h4>
                     <div style="height: 220px;"><canvas id="oeeChartO"></canvas></div>
                 </div>
             </div>
